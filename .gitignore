@@ -1,0 +1,54 @@
+# Ambientes e Segredos (CRÍTICO: Nunca commitar chaves ou .env)
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+*.secret
+
+# Ambientes Virtuais Python
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Caches de Bytecode Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Caches de Testes e Ferramentas
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.ruff_cache/
+.mypy_cache/
+
+# Logs e Arquivos Temporários
+*.log
+logs/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Arquivos de Sistema Operacional
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Configurações de IDE
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
