@@ -15,7 +15,6 @@
 [![FastMCP](https://img.shields.io/badge/Protocol-FastMCP%201.29-0284C7?style=flat-square)](https://modelcontextprotocol.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-059669?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com)
-[![Score](https://img.shields.io/badge/Evaluation-100.0%20%2F%20100.0-059669?style=flat-square&logo=checkmarx&logoColor=white)](#-benchmark-and-homologation-results)
 
 </div>
 
