@@ -7,6 +7,7 @@ para abastecer o Agente de Normas sem sobrecarregar a cota de tokens (máx ~3000
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -53,8 +54,9 @@ def obter_indice() -> VectorStoreIndex:
     return _INDICE
 
 
+@lru_cache(maxsize=128)
 def consultar_normas(query: str, top_k: int = 4) -> str:
-    """Recupera trechos normativos relevantes para uma dúvida ou tópico."""
+    """Recupera trechos normativos relevantes para uma dúvida ou tópico (com cache LRU em memória)."""
     try:
         index = obter_indice()
         retriever = index.as_retriever(similarity_top_k=top_k)
