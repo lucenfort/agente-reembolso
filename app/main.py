@@ -1,12 +1,16 @@
-"""API do agente. As 3 rotas são obrigatórias; o miolo é seu.
+"""API do agente de reembolso.
 
-    uvicorn app.main:app --host 0.0.0.0 --port 8000
+Endpoints obrigatórios:
+- GET /health: Healthcheck da aplicação (< 5s cold start)
+- POST /chat: Turno de conversa com orquestração LangGraph
+- POST /reset: Limpeza de memória e sessões
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI
 
+from app.agents.supervisor import executar_turno, resetar_estado
 from app.llm import carregar_env
 from app.schemas import ChatRequest, ChatResponse
 
@@ -14,29 +18,22 @@ from app.schemas import ChatRequest, ChatResponse
 # injeta as credenciais dela no `docker run`.
 carregar_env()
 
-app = FastAPI(title="Agente de Reembolso")
+app = FastAPI(title="Agente de Reembolso - SaúdeMais")
 
 
 @app.get("/health")
 def health() -> dict:
-    """Precisa responder 200 em até 60 segundos do start do container.
-
-    Não construa índice aqui: o `storage/` já vem pronto na imagem.
-    """
+    """Precisa responder 200 em até 60 segundos do start do container."""
     return {"status": "ok"}
 
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest) -> ChatResponse:
-    """Um turno de conversa.
-
-    O avaliador NÃO reenvia o histórico: recupere o estado da conversa pelo
-    `session_id`, com o checkpointer do seu grafo.
-    """
-    raise NotImplementedError("implemente o supervisor em app/agents/supervisor/")
+    """Um turno de conversa orquestrado pelo grafo LangGraph."""
+    return executar_turno(req)
 
 
 @app.post("/reset")
 def reset() -> dict:
-    """Limpa estado e sessões. Chamado entre conversas."""
-    raise NotImplementedError("implemente a limpeza de estado")
+    """Limpa estado e sessões entre conversas."""
+    return resetar_estado()

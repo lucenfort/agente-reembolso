@@ -1,10 +1,10 @@
-"""Recuperação — carga do índice e busca híbrida.
+"""Recuperação — carga do índice e busca híbrida."""
 
-Carrega o que `ingest/build.py` gravou em `storage/` e monta a busca: BM25 e
-denso, com fusão e reranker.
+from .retriever import carregar_tuss_tabela, consultar_normas, consultar_tuss, obter_indice
 
-Atenção ao persistir: o índice vetorial não é a única coisa que precisa
-sobreviver ao build. Se o BM25 for reconstruído a partir de nós em memória,
-dentro do container ele não existe — e a busca deixa de ser híbrida sem
-levantar erro nenhum.
-"""
+__all__ = [
+    "carregar_tuss_tabela",
+    "consultar_normas",
+    "consultar_tuss",
+    "obter_indice",
+]

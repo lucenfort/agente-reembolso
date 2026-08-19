@@ -58,35 +58,32 @@ class MCPClient:
         self, nome_ferramenta: str, argumentos: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Executa uma chamada RPC de ferramenta no servidor MCP via Streamable HTTP."""
-        headers = self._headers()
         try:
-            async with httpx.AsyncClient(headers=headers, timeout=self.timeout) as http_client:
-                async with streamable_http_client(self.url, http_client=http_client) as (read, write, _):
-                    async with ClientSession(read, write) as session:
+            async with httpx.AsyncClient(headers=self._headers(), timeout=self.timeout) as http_client:
+                async with streamable_http_client(
+                    self.url,
+                    http_client=http_client,
+                ) as (read_stream, write_stream, init_options):
+                    async with ClientSession(read_stream, write_stream) as session:
                         await session.initialize()
                         resultado = await session.call_tool(nome_ferramenta, argumentos)
 
                         if resultado.isError:
-                            msg_erro = ""
-                            if resultado.content:
-                                msg_erro = " ".join(
-                                    getattr(c, "text", str(c)) for c in resultado.content
-                                )
                             logger.warning(
-                                f"Erro retornado pela ferramenta MCP '{nome_ferramenta}': {msg_erro}"
+                                f"Servidor MCP retornou erro ao chamar '{nome_ferramenta}': {resultado.content}"
                             )
                             return None
 
                         if not resultado.content:
                             return None
 
-                        # O conteúdo retornado pelo FastMCP vem como JSON no primeiro bloco de texto
-                        primeiro_bloco = resultado.content[0]
-                        texto_json = getattr(primeiro_bloco, "text", "")
-                        if not texto_json:
-                            return None
+                        bloco_conteudo = resultado.content[0]
+                        texto_resposta = getattr(bloco_conteudo, "text", "")
 
-                        return json.loads(texto_json)
+                        try:
+                            return json.loads(texto_resposta)
+                        except json.JSONDecodeError:
+                            return {"texto": texto_resposta}
 
         except httpx.HTTPStatusError as e:
             logger.error(f"Erro HTTP {e.response.status_code} ao conectar no MCP ({self.url}): {e}")
@@ -102,20 +99,7 @@ class MCPClient:
             return None
 
     # ------------------------------------------------------------- 1. Beneficiário
-    async def consultar_beneficiario(self, carteirinha: str) -> dict[str, Any] | None:
-        """Consulta dados cadastrais do beneficiário normalizando os esquemas v1 e v2.
-
-        Retorna dicionário unificado:
-            carteirinha: str
-            nome: str
-            cpf_mascarado: str
-            plano: str ("Pleno" ou "Essencial")
-            data_adesao: str ("YYYY-MM-DD")
-            status: str ("ATIVO", "SUSPENSO", etc.)
-            sessoes_terapia_ano: int (sessões realizadas no ano civil corrente)
-            acumulado_terapia: int (total histórico acumulado)
-            encontrado: bool
-        """
+    async def consultar_beneficiario_async(self, carteirinha: str) -> dict[str, Any] | None:
         carteirinha_limpa = re.sub(r"\D", "", str(carteirinha))
         if not carteirinha_limpa:
             return None
@@ -126,16 +110,13 @@ class MCPClient:
         if not dados or not isinstance(dados, dict):
             return None
 
-        # Trata polimorfismo de esquema (v1 vs v2)
         sessoes_ano = 0
         acumulado = 0
 
         if "sessoes_terapia_ano" in dados:
-            # Esquema v1
             sessoes_ano = int(dados.get("sessoes_terapia_ano", 0))
             acumulado = int(dados.get("acumulado_terapia", sessoes_ano * 2))
         elif "sessoes_terapia" in dados:
-            # Esquema v2
             bloco_sessoes = dados.get("sessoes_terapia", {})
             if isinstance(bloco_sessoes, dict):
                 sessoes_ano = int(bloco_sessoes.get("ano_corrente", 0))
@@ -157,15 +138,7 @@ class MCPClient:
         }
 
     # ---------------------------------------------------------------- 2. Histórico
-    async def consultar_historico(self, carteirinha: str) -> dict[str, Any]:
-        """Consulta os pedidos de reembolso anteriores do beneficiário no ano.
-
-        Retorna dicionário:
-            carteirinha: str
-            pedidos: list[dict]
-            total_reembolsado_ano_brl: float (soma de reembolsos aprovados no ano)
-            total_pedidos: int
-        """
+    async def consultar_historico_async(self, carteirinha: str) -> dict[str, Any]:
         carteirinha_limpa = re.sub(r"\D", "", str(carteirinha))
         if not carteirinha_limpa:
             return {"carteirinha": "", "pedidos": [], "total_reembolsado_ano_brl": 0.0, "total_pedidos": 0}
@@ -191,15 +164,15 @@ class MCPClient:
         return {
             "carteirinha": carteirinha_limpa,
             "pedidos": pedidos,
+            "total_reembolsado_ano": round(total_pago, 2),
             "total_reembolsado_ano_brl": round(total_pago, 2),
             "total_pedidos": len(pedidos),
         }
 
     # ---------------------------------------------------------------- 3. Protocolo
-    async def abrir_protocolo(
+    async def abrir_protocolo_async(
         self, carteirinha: str, payload: dict[str, Any]
     ) -> dict[str, Any] | None:
-        """Abre protocolo para análise humana e devolve o registro oficial."""
         carteirinha_limpa = re.sub(r"\D", "", str(carteirinha))
         dados = await self._executar_ferramenta(
             "abrir_protocolo",
@@ -216,13 +189,64 @@ class MCPClient:
         }
 
     # ------------------------------------------------------- Wrappers Síncronos
-    def consultar_beneficiario_sync(self, carteirinha: str) -> dict[str, Any] | None:
-        return asyncio.run(self.consultar_beneficiario(carteirinha))
+    def consultar_beneficiario(self, carteirinha: str) -> dict[str, Any] | None:
+        """Consulta dados cadastrais síncrona."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                return loop.run_until_complete(self.consultar_beneficiario_async(carteirinha))
+            return loop.run_until_complete(self.consultar_beneficiario_async(carteirinha))
+        except RuntimeError:
+            return asyncio.run(self.consultar_beneficiario_async(carteirinha))
 
-    def consultar_historico_sync(self, carteirinha: str) -> dict[str, Any]:
-        return asyncio.run(self.consultar_historico(carteirinha))
+    def consultar_historico(self, carteirinha: str) -> dict[str, Any]:
+        """Consulta histórico de pedidos síncrona."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                return loop.run_until_complete(self.consultar_historico_async(carteirinha))
+            return loop.run_until_complete(self.consultar_historico_async(carteirinha))
+        except RuntimeError:
+            return asyncio.run(self.consultar_historico_async(carteirinha))
 
-    def abrir_protocolo_sync(
-        self, carteirinha: str, payload: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        return asyncio.run(self.abrir_protocolo(carteirinha, payload))
+    def abrir_protocolo(
+        self, carteirinha: str, tipo_solicitacao: str | dict[str, Any] = "REEMBOLSO_OPME", valor: Any = None
+    ) -> str | None:
+        """Abre protocolo síncrono e devolve a string do número do protocolo."""
+        if isinstance(tipo_solicitacao, dict):
+            payload = tipo_solicitacao
+        else:
+            payload = {
+                "tipo": str(tipo_solicitacao),
+                "valor_solicitado": float(valor) if valor is not None else None,
+            }
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                res = loop.run_until_complete(self.abrir_protocolo_async(carteirinha, payload))
+            else:
+                res = loop.run_until_complete(self.abrir_protocolo_async(carteirinha, payload))
+        except RuntimeError:
+            res = asyncio.run(self.abrir_protocolo_async(carteirinha, payload))
+
+        if res and "protocolo" in res:
+            return str(res["protocolo"])
+        return None
+
+
+_CLIENTE_MCP_SINGLETON: MCPClient | None = None
+
+
+def obter_cliente_mcp() -> MCPClient:
+    """Retorna a instância singleton do cliente MCP."""
+    global _CLIENTE_MCP_SINGLETON
+    if _CLIENTE_MCP_SINGLETON is None:
+        _CLIENTE_MCP_SINGLETON = MCPClient()
+    return _CLIENTE_MCP_SINGLETON

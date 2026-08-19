@@ -1,7 +1,8 @@
-"""Módulo de ferramentas e cliente MCP da operadora SaúdeMais."""
+"""Ferramentas e integrações externas."""
 
-from __future__ import annotations
+from .mcp_client import MCPClient, obter_cliente_mcp
 
-from .mcp_client import MCPClient
-
-__all__ = ["MCPClient"]
+__all__ = [
+    "MCPClient",
+    "obter_cliente_mcp",
+]

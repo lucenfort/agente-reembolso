@@ -1,4 +1,4 @@
-"""Decodificação e extração de texto de anexos (PDF e Imagens/OCR)."""
+"""Módulo de parsing e decodificação de anexos em Base64 (PDFs e Imagens)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import io
 import logging
 import re
 import shutil
-from pathlib import Path
+from typing import Any
 
 import pymupdf
 from PIL import Image
@@ -26,14 +26,23 @@ def _verificar_tesseract() -> bool:
     return _TESSERACT_DISPONIVEL
 
 
-def extrair_texto_de_base64(anexo_base64: str) -> tuple[str, str]:
-    """Decodifica payload Base64 e extrai texto de PDF ou imagem.
+def extrair_texto_de_base64(anexo_input: Any) -> tuple[str, str]:
+    """Decodifica payload Base64 (ou objeto Anexo / dict) e extrai texto de PDF ou imagem.
 
     Retorna:
         tuple[texto_extraido, tipo_detectado]
     """
-    if not anexo_base64:
+    if not anexo_input:
         return "", "DESCONHECIDO"
+
+    if hasattr(anexo_input, "base64"):
+        anexo_base64 = str(anexo_input.base64)
+    elif isinstance(anexo_input, dict) and "base64" in anexo_input:
+        anexo_base64 = str(anexo_input["base64"])
+    elif isinstance(anexo_input, str):
+        anexo_base64 = anexo_input
+    else:
+        anexo_base64 = str(anexo_input)
 
     # Remove prefixo de data URI caso presente (ex: data:application/pdf;base64,...)
     anexo_limpo = anexo_base64.strip()
@@ -58,53 +67,57 @@ def extrair_texto_de_base64(anexo_base64: str) -> tuple[str, str]:
 
 
 def _extrair_texto_pdf(dados_bytes: bytes) -> str:
-    """Extrai texto de PDF com fallback para OCR em páginas escaneadas."""
-    textos_paginas: list[str] = []
+    """Extrai texto e tabelas de um arquivo PDF via PyMuPDF com fallback OCR."""
+    textos: list[str] = []
     try:
-        doc = pymupdf.open(stream=dados_bytes, filetype="pdf")
-        for num_pag, page in enumerate(doc):
-            texto = page.get_text().strip()
+        with pymupdf.open(stream=dados_bytes, filetype="pdf") as doc:
+            for page_num, page in enumerate(doc):
+                texto_pagina = page.get_text().strip()
 
-            # Se a página contiver texto vetorial estruturado, utiliza diretamente
-            if len(texto) >= 30:
-                textos_paginas.append(texto)
-                continue
+                # Tenta extrair tabelas estruturadas da página se existirem
+                tabs = page.find_tables()
+                if tabs and len(tabs.tables) > 0:
+                    for tab in tabs:
+                        for row in tab.extract():
+                            if row and any(row):
+                                linha = " | ".join(str(c).strip() for c in row if c is not None)
+                                if linha not in texto_pagina:
+                                    textos.append(linha)
 
-            # Fallback para OCR caso a página seja imagem escaneada
-            if _verificar_tesseract():
-                try:
-                    import pytesseract
-
+                if texto_pagina:
+                    textos.append(texto_pagina)
+                elif _verificar_tesseract():
+                    # Fallback OCR para páginas que são imagens escaneadas
                     pix = page.get_pixmap(dpi=150)
                     img = Image.open(io.BytesIO(pix.tobytes("png")))
-                    texto_ocr = pytesseract.image_to_string(img, lang="por")
-                    if texto_ocr.strip():
-                        textos_paginas.append(texto_ocr.strip())
-                        continue
-                except Exception as e:
-                    logger.warning(f"Falha ao executar OCR na página {num_pag + 1}: {e}")
+                    try:
+                        import pytesseract
 
-            if texto:
-                textos_paginas.append(texto)
+                        texto_ocr = pytesseract.image_to_string(img, lang="por+eng")
+                        if texto_ocr.strip():
+                            textos.append(texto_ocr.strip())
+                    except Exception as e:
+                        logger.warning(f"Falha no OCR da página {page_num}: {e}")
 
     except Exception as e:
         logger.error(f"Erro ao processar PDF com PyMuPDF: {e}")
+        return ""
 
-    return "\n\n".join(textos_paginas).strip()
+    return "\n\n".join(textos)
 
 
 def _extrair_texto_imagem(dados_bytes: bytes) -> str:
-    """Extrai texto de imagem usando Tesseract OCR em português."""
+    """Extrai texto de imagem usando Tesseract OCR se disponível."""
     if not _verificar_tesseract():
-        logger.warning("OCR requisitado para imagem, mas Tesseract não está instalado.")
+        logger.warning("OCR solicitado para imagem mas Tesseract não está disponível no PATH.")
         return ""
 
     try:
         import pytesseract
 
         img = Image.open(io.BytesIO(dados_bytes))
-        texto_ocr = pytesseract.image_to_string(img, lang="por")
+        texto_ocr = pytesseract.image_to_string(img, lang="por+eng")
         return texto_ocr.strip()
     except Exception as e:
-        logger.error(f"Erro ao executar OCR em imagem: {e}")
+        logger.error(f"Erro no OCR de imagem: {e}")
         return ""

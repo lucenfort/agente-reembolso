@@ -1,7 +1,15 @@
-"""Guardrails — o que nunca pode sair na resposta.
+"""Guardrails e interceptadores de segurança."""
 
-  * código de CID, hipótese diagnóstica ou CPF completo;
-  * qualquer informação sobre carteirinha diferente da que abriu a sessão.
+from .sanitizer import (
+    mascarar_cpf,
+    neutralizar_cid,
+    remover_carteirinhas_terceiro,
+    sanitizar_resposta,
+)
 
-O regulamento detalha o que é permitido em cada caso.
-"""
+__all__ = [
+    "mascarar_cpf",
+    "neutralizar_cid",
+    "remover_carteirinhas_terceiro",
+    "sanitizar_resposta",
+]
