@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="45%" stop-color="#0F172A" />
+      <stop offset="80%" stop-color="#1E1B4B" />
+      <stop offset="100%" stop-color="#180D2B" />
+    </linearGradient>
+
+    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+
+    <linearGradient id="emerald-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064E3B" />
+      <stop offset="100%" stop-color="#065F46" />
+    </linearGradient>
+
+    <linearGradient id="amber-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451A03" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+
+    <linearGradient id="card-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <marker id="arrow-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38BDF8" />
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#F59E0B" />
+    </marker>
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10B981" />
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#A855F7" />
+    </marker>
+
+    <style>
+      .font-sans { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+      .title { font-size: 15px; font-weight: 700; fill: #F8FAFC; letter-spacing: 0.6px; }
+      .sub { font-size: 11px; fill: #94A3B8; }
+      .node-title { font-size: 13px; font-weight: 700; fill: #F8FAFC; }
+      .node-desc { font-size: 10.5px; fill: #CBD5E1; }
+      .branch-label { font-size: 10px; font-weight: 600; }
+      .pill-text { font-size: 11px; font-weight: 700; fill: #E2E8F0; letter-spacing: 0.4px; }
+
+      .flow-line {
+        stroke-dasharray: 6 5;
+        animation: flow 1.8s linear infinite;
+      }
+      @keyframes flow {
+        to { stroke-dashoffset: -22; }
+      }
+
+      .pulse-dot {
+        animation: pulse 2.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.45; }
+        50% { opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  <!-- Fundo -->
+  <rect width="960" height="560" rx="16" fill="url(#bg-grad)" />
+  <rect x="1" y="1" width="958" height="558" rx="15" fill="none" stroke="#334155" stroke-width="1.2" />
+
+  <!-- Grade decorativa sutil -->
+  <g stroke="#1E293B" stroke-width="0.6" opacity="0.45">
+    <line x1="0" y1="80" x2="960" y2="80" />
+    <line x1="0" y1="160" x2="960" y2="160" />
+    <line x1="0" y1="240" x2="960" y2="240" />
+    <line x1="0" y1="320" x2="960" y2="320" />
+    <line x1="0" y1="400" x2="960" y2="400" />
+    <line x1="0" y1="480" x2="960" y2="480" />
+  </g>
+
+  <!-- Cabeçalho -->
+  <rect x="24" y="18" width="912" height="38" rx="8" fill="#0F172A" stroke="#334155" stroke-width="1" />
+  <circle cx="44" cy="37" r="5" fill="#38BDF8" class="pulse-dot" filter="url(#glow)" />
+  <text x="58" y="41" class="font-sans title">ARQUITETURA LANGGRAPH · 6 NÓS COM ROTEAMENTO CONDICIONAL</text>
+  <text x="916" y="41" text-anchor="end" class="font-sans sub">MemorySaver (session_id) · FastMCP · Decimal</text>
+
+  <!-- START Pill -->
+  <rect x="370" y="72" width="220" height="30" rx="15" fill="#1E293B" stroke="url(#primary-grad)" stroke-width="1.5" />
+  <text x="480" y="91" text-anchor="middle" class="font-sans pill-text">START · POST /chat</text>
+
+  <!-- Conector START -> N1 -->
+  <line x1="480" y1="102" x2="480" y2="122" stroke="#38BDF8" stroke-width="2" class="flow-line" marker-end="url(#arrow-cyan)" />
+
+  <!-- N1: processar_entrada -->
+  <rect x="290" y="124" width="380" height="50" rx="10" fill="url(#card-grad)" stroke="#38BDF8" stroke-width="1.4" />
+  <circle cx="308" cy="149" r="4" fill="#38BDF8" class="pulse-dot" />
+  <text x="322" y="144" class="font-sans node-title">1. processar_entrada</text>
+  <text x="322" y="162" class="font-sans node-desc">Parser PDF/OCR (PyMuPDF + Tesseract) + Triagem MCP</text>
+
+  <!-- Conector N1 -> N2 -->
+  <line x1="480" y1="174" x2="480" y2="194" stroke="#38BDF8" stroke-width="2" class="flow-line" marker-end="url(#arrow-cyan)" />
+
+  <!-- N2: recuperar_lastro_rag -->
+  <rect x="290" y="196" width="380" height="50" rx="10" fill="url(#card-grad)" stroke="#6366F1" stroke-width="1.4" />
+  <circle cx="308" cy="221" r="4" fill="#6366F1" class="pulse-dot" />
+  <text x="322" y="216" class="font-sans node-title">2. recuperar_lastro_rag</text>
+  <text x="322" y="234" class="font-sans node-desc">BM25 + Índice Reverso de Dispositivos no AgentState (filtra revogadas)</text>
+
+  <!-- Conector N2 -> N3 -->
+  <line x1="480" y1="246" x2="480" y2="266" stroke="#6366F1" stroke-width="2" class="flow-line" marker-end="url(#arrow-cyan)" />
+
+  <!-- N3: verificar_requisitos -->
+  <rect x="255" y="268" width="450" height="54" rx="10" fill="#1E1B4B" stroke="url(#primary-grad)" stroke-width="2" filter="url(#glow)" />
+  <circle cx="274" cy="295" r="4.5" fill="#A855F7" class="pulse-dot" />
+  <text x="288" y="289" class="font-sans node-title">3. verificar_requisitos (Roteador Condicional)</text>
+  <text x="288" y="308" class="font-sans node-desc">11 Portões Eliminatórios · NT-02 Seção 6.1 · Vigência · Carências · Art. 78</text>
+
+  <!-- Ramificações a partir de N3 -->
+  <!-- Esquerda: N3 -> N4A -->
+  <path d="M 330 322 L 330 338 L 175 338 L 175 358" fill="none" stroke="#F59E0B" stroke-width="2" class="flow-line" marker-end="url(#arrow-amber)" />
+  <rect x="115" y="328" width="150" height="18" rx="4" fill="#0F172A" />
+  <text x="190" y="340" text-anchor="middle" class="font-sans branch-label" fill="#FBBF24">Impedimento / Exceção</text>
+
+  <!-- Centro: N3 -> N5 (Estado Incompleto) -->
+  <line x1="480" y1="322" x2="480" y2="424" stroke="#94A3B8" stroke-width="1.8" class="flow-line" marker-end="url(#arrow-purple)" />
+  <rect x="405" y="366" width="150" height="22" rx="6" fill="#0F172A" stroke="#475569" stroke-width="1" />
+  <text x="480" y="381" text-anchor="middle" class="font-sans branch-label" fill="#CBD5E1">Estado Incompleto</text>
+
+  <!-- Direita: N3 -> N4B -->
+  <path d="M 630 322 L 630 338 L 785 338 L 785 358" fill="none" stroke="#10B981" stroke-width="2" class="flow-line" marker-end="url(#arrow-emerald)" />
+  <rect x="710" y="328" width="150" height="18" rx="4" fill="#0F172A" />
+  <text x="785" y="340" text-anchor="middle" class="font-sans branch-label" fill="#34D399">Apto para Cálculo</text>
+
+  <!-- N4A: registrar_impedimento -->
+  <rect x="35" y="360" width="280" height="52" rx="10" fill="url(#amber-grad)" stroke="#F59E0B" stroke-width="1.5" />
+  <text x="52" y="381" class="font-sans node-title">4A. registrar_impedimento</text>
+  <text x="52" y="399" class="font-sans node-desc">Sem cálculo · Protocolo MCP se Art. 78</text>
+
+  <!-- N4B: calcular_reembolso -->
+  <rect x="645" y="360" width="280" height="52" rx="10" fill="url(#emerald-grad)" stroke="#10B981" stroke-width="1.5" />
+  <text x="662" y="381" class="font-sans node-title">4B. calcular_reembolso</text>
+  <text x="662" y="399" class="font-sans node-desc">Motor Decimal + 1.835 TUSS + Circulares</text>
+
+  <!-- Conectores N4A -> N5 e N4B -> N5 -->
+  <path d="M 175 412 L 175 451 L 288 451" fill="none" stroke="#F59E0B" stroke-width="2" class="flow-line" marker-end="url(#arrow-purple)" />
+  <path d="M 785 412 L 785 451 L 672 451" fill="none" stroke="#10B981" stroke-width="2" class="flow-line" marker-end="url(#arrow-purple)" />
+
+  <!-- N5: sintetizar_resposta -->
+  <rect x="290" y="426" width="380" height="50" rx="10" fill="url(#card-grad)" stroke="#A855F7" stroke-width="1.5" />
+  <circle cx="308" cy="451" r="4" fill="#A855F7" class="pulse-dot" />
+  <text x="322" y="446" class="font-sans node-title">5. sintetizar_resposta</text>
+  <text x="322" y="464" class="font-sans node-desc">Multi-Provedor: Antigravity · Gemini · Grok · Local · Bootcamp</text>
+
+  <!-- Conector N5 -> N6 -->
+  <line x1="480" y1="476" x2="480" y2="494" stroke="#A855F7" stroke-width="2" class="flow-line" marker-end="url(#arrow-purple)" />
+
+  <!-- N6: guardrails_e_sanitizacao + END -->
+  <rect x="210" y="496" width="540" height="46" rx="10" fill="#111827" stroke="url(#primary-grad)" stroke-width="1.5" />
+  <circle cx="228" cy="519" r="4" fill="#38BDF8" class="pulse-dot" />
+  <text x="242" y="515" class="font-sans node-title">6. guardrails_e_sanitizacao &#x2192; END (ChatResponse)</text>
+  <text x="242" y="532" class="font-sans node-desc">Máscara CPF · Anti-CID-10 · Anti-Terceiro (Art. 8º) · Anti-Eco · Auditoria JSON</text>
+</svg>

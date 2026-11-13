@@ -45,7 +45,7 @@ The system operates as an autonomous regulatory and customer service analyst, fe
 7. [Ingestion and RAG Index Build](#ingestion-and-rag-index-build)
 8. [Running the Evaluation Test Suite](#running-the-evaluation-test-suite)
 9. [Docker Build and Execution](#docker-build-and-execution)
-10. [Benchmark and Homologation Results](#benchmark-and-homologation-results)
+10. [Scenario Coverage and Validation](#scenario-coverage-and-validation)
 
 ---
 
@@ -53,21 +53,9 @@ The system operates as an autonomous regulatory and customer service analyst, fe
 
 The architecture follows a **6-Node Graph-Oriented Multi-Agent Supervisor Pattern with Conditional Routing**, ensuring complete separation between verification, conversational reasoning, and deterministic financial calculation:
 
-```mermaid
-flowchart TD
-    START([START / POST /chat]) --> N1["1. processar_entrada<br/>(PDF/OCR Parser + MCP Triage)"]
-    N1 --> N2["2. recuperar_lastro_rag<br/>(BM25 + Device Index into AgentState)"]
-    N2 --> N3["3. verificar_requisitos<br/>(11 Eliminatory Gates — NT-02 Section 6.1)"]
-
-    N3 -->|"Incomplete State<br/>(missing card or attachment)"| N5["5. sintetizar_resposta<br/>(Multi-Provider: Antigravity / Gemini / Grok / Local)"]
-    N3 -->|"Blocker / Exception<br/>(PENDENTE_DOCUMENTO, NEGADO, ESCALADO_ANALISTA)"| N4A["4A. registrar_impedimento<br/>(No calculation; opens MCP protocol if Art. 78)"]
-    N3 -->|"Eligible for Calculation<br/>(all gates passed)"| N4B["4B. calcular_reembolso<br/>(Decimal Engine + 1,835 TUSS codes + Circulars)"]
-
-    N4A --> N5
-    N4B --> N5
-    N5 --> N6["6. guardrails_e_sanitizacao<br/>(CPF Mask, Anti-ICD, Anti-Third-Party Art. 8, Anti-Echo)"]
-    N6 --> END([END / ChatResponse])
-```
+<div align="center">
+  <img src="assets/arquitetura.svg" alt="6-Node LangGraph Conditional Routing Architecture" width="100%" />
+</div>
 
 ### Core Modules
 * **6-Node LangGraph Supervisor (`app/agents/supervisor/`):** State graph with `MemorySaver` checkpointer keyed by `session_id` and strict conditional routing before calculation.
@@ -235,16 +223,16 @@ docker run -d --env-file .env -p 8000:8000 reembolso
 
 ---
 
-## Benchmark and Homologation Results
+## Scenario Coverage and Validation
 
-The agent achieved a **100.0 / 100.0 (Perfect Score)** across all official training scenarios:
+All core flows and regulatory rules are automatically validated by the `pytest` suite (`17` passing tests) and `rodar_treino.py`:
 
-| Test Scenario | Regulatory Challenge / Edge Case | Turns Attended | Outcome | Final Score |
-| :--- | :--- | :---: | :---: | :---: |
-| **Case 01 (Dermatology)** | Attachment before context, third-party refusal (Art. 8), 40\% copay | 8 / 8 | 100\% Accurate | **100.0 / 100.0** |
-| **Case 02 (Psychotherapy)** | 12th session in history, mandatory clinical report (Art. 73), annual cap | 9 / 9 | 100\% Accurate | **100.0 / 100.0** |
-| **Case 03 (OPME Prosthesis)** | Invalid attachment (utility bill), re-upload, human expert audit (Art. 78) | 7 / 7 | 100\% Accurate | **100.0 / 100.0** |
-| **Consolidated Average** | **All official training scenarios** | **24 / 24** | **100\%** | **100.0 / 100.0** |
+| Validation Scenario | Regulatory Challenge / Edge Case | Validated Turns | Outcome |
+| :--- | :--- | :---: | :---: |
+| **Case 01 (Dermatology)** | Attachment before context, third-party refusal (Art. 8), 40\% copay | 8 / 8 | `APROVADO` |
+| **Case 02 (Psychotherapy)** | 12th session in MCP history, mandatory clinical report (Art. 73), annual cap | 9 / 9 | `APROVADO` |
+| **Case 03 (OPME Prosthesis)** | Invalid attachment (utility bill), re-upload, human expert audit (Art. 78) | 7 / 7 | `ESCALADO_ANALISTA` |
+| **Extended Rules (`pytest`)** | Temporal circular rules, 1,835 TUSS, waiting periods, 90d limit, Art. 38, RAG & API | 14 suites | **17 / 17 PASS** |
 
 ---
 

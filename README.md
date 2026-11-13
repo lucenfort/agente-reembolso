@@ -35,25 +35,24 @@ O sistema atua como um analista regulatório e de atendimento ao cliente em Saú
 7. Expor uma **Interface Web Interativa (`GET /`)** com painel **Raio-X Técnico** em tempo real para inspeção de decisões, cálculos, protocolos MCP e dispositivos aplicados.
 
 ### Resumo do Desafio Original
-A prova técnica simulava o atendimento real de uma operadora fictícia (**SaúdeMais**) com regras jurídicas densas, armadilhas de conversa e avaliação automatizada por juiz LLM sobre conversas multi-turno (peso de 70% nos turnos atendidos e 30% no desfecho final). Entre os principais desafios exigidos:
-- **Conversas fora de ordem:** receber anexos antes da carteirinha, ou receber documentos faltantes em turnos posteriores sem perder o protocolo aberto;
-- **Vigência temporal e hierarquia de normas:** distinguir regras por data do evento (`Circular 11/2026` vs. `Circular 02/2026`), ignorar normas revogadas (`Circular 04/2025` revogada pela `09/2025`) e cruzar dados do sistema MCP (ex.: contagem real de sessões de terapia no ano);
+O desafio propunha construir um agente autônomo para uma operadora fictícia (**SaúdeMais**) capaz de conduzir atendimentos multi-turno de reembolso médico com regras regulatórias densas, envolvendo:
+- **Conversas fora de ordem:** receber anexos antes da carteirinha ou receber documentos faltantes em turnos posteriores sem perder o protocolo aberto;
+- **Vigência temporal e hierarquia de normas:** distinguir regras por data do evento (`Circular 11/2026` vs. `Circular 02/2026`), ignorar normas revogadas (`Circular 04/2025` revogada pela `09/2025`) e cruzar dados do sistema legado via MCP (como a contagem real de sessões de terapia no ano);
 - **Alçada e OPME:** escalar materiais especiais e valores acima da alçada (Art. 78) abrindo protocolo MCP, com proibição estrita de estimar valor prévio ao beneficiário;
 - **Sigilo e LGPD:** impedir vazamento de CPF completo, CID-10 e informações de terceiros na mesma sessão.
 
-### Resultados no Bootcamp, Devolutiva e Evolução para o Projeto Final
+### Melhorias Implementadas Além do Desafio (e Por Quê)
 
-Na avaliação oficial do bootcamp (**v1**), a primeira versão do projeto obteve **67,1 / 100** (**+22,9 pontos acima da média da turma de 44,2 / 100**, ficando no top ~12% e a apenas 2,9 pontos da nota de corte 70,0), com destaque na fluidez conversacional (**56/67 turnos atendidos — 84%**, somando ~58,1 pts), mas perdendo pontos nos desfechos (**3/10 desfechos — 9,0 pts**).
+Para transformar o protótipo inicial em uma arquitetura auditável, resiliente e pronta para demonstração e produção, foram implementadas as seguintes evoluções:
 
-**Principais pontos apontados pela devolutiva oficial e o que foi corrigido/melhorado na versão final (v2):**
-
-| Aspecto | Versão Bootcamp (v1 — 67,1/100) | Versão Final (v2 — 100/100 Treino · 96,8 Projetado) |
-| :--- | :--- | :--- |
-| **Orquestração LangGraph** | Grafo linear de 3 nós disparava o cálculo assim que havia documento e carteirinha. | Refatorado para **6 nós com roteamento condicional**: `verificar_requisitos` (11 portões) bloqueia casos inválidos antes de `calcular_reembolso`. |
-| **Leitura de Sessões MCP** | Lia `sessoes_terapia_ano` apenas de `/historico`, lendo `0` quando o campo vinha em `/beneficiario`. | Corrigido em `mcp_client.py` e `motor.py` para ler `/beneficiario` + `/historico`, exigindo corretamente o relatório clínico (Art. 73). |
-| **Regras e Tabela TUSS** | Cobertura parcial de códigos TUSS e sem diferenciação completa de vigência temporal. | Integração dos **1.835 códigos TUSS**, vigência temporal (`Circular 11/2026` vs. `02/2026`), teto reduzido de psicoterapia (`2,6 URS` na 8ª+ sessão), carências (15d/60d/150d/180d/0d) e pedido médico (Art. 38). |
-| **Lastro Normativo (RAG)** | Dependia de gateway externo para embeddings e não gravava os dispositivos no estado. | Motor híbrido offline **BM25 + Índice Reverso de Dispositivos** gravando `evidencias_rag` no `AgentState` e filtrando normas revogadas. |
-| **Provedores, UI e Testes** | Suportava apenas o gateway do bootcamp e não possuía interface visual nem suíte extensa. | Suporte a **5 provedores LLM** com fallback automático, **Interface Web com Raio-X Técnico**, **17 testes (`pytest`)** e CI no GitHub Actions. |
+| Melhoria Implementada | Por que foi desenvolvida |
+| :--- | :--- |
+| **Grafo LangGraph de 6 Nós com Roteamento Condicional** | Garante que o nó `calcular_reembolso` só seja alcançável após aprovação nos **11 portões eliminatórios** (`verificar_requisitos`), impedindo aprovações ou estimativas indevidas antes da validação completa. |
+| **Leitura Unificada de Histórico MCP (`/beneficiario` + `/historico`)** | Assegura consistência na contagem de `sessoes_terapia_ano` independentemente do endpoint retornado pelo servidor MCP, garantindo a exigência correta do relatório clínico (Art. 73). |
+| **Motor Determinístico `Decimal` + 1.835 Códigos TUSS + Vigência Temporal** | Elimina imprecisões numéricas de LLM em cálculos financeiros, cobre todos os grupos TUSS (com inferência por descrição) e aplica automaticamente as regras vigentes por data (`Circular 11/2026` vs. `02/2026`), carências (15d/60d/150d/180d/0d) e pedido médico (Art. 38). |
+| **RAG Híbrido Offline (`BM25` + Índice Reverso de Dispositivos)** | Remove a dependência exclusiva de gateway externo para busca normativa, grava `evidencias_rag` diretamente no `AgentState` e filtra normas revogadas. |
+| **Suporte Multi-Provedor com Fallback Automático** | Permite alternar dinamicamente entre `bootcamp`, `gemini`, `grok`, `local` (Ollama/LM Studio/vLLM) e `antigravity` offline, evitando indisponibilidade em chamadas externas. |
+| **Interface Web Interativa + Suíte de 17 Testes (`pytest`) + CI** | Entrega um painel visual (**Raio-X Técnico**) para inspeção em tempo real de decisões, protocolos MCP e lastro normativo, além de cobertura automatizada via GitHub Actions. |
 
 ---
 
@@ -68,7 +67,7 @@ Na avaliação oficial do bootcamp (**v1**), a primeira versão do projeto obtev
 7. [Ingestão e Construção do Índice Normativo (RAG)](#ingestão-e-construção-do-índice-normativo-rag)
 8. [Execução dos Testes de Avaliação](#execução-dos-testes-de-avaliação)
 9. [Build e Execução via Docker](#build-e-execução-via-docker)
-10. [Resultados de Benchmark e Homologação](#resultados-de-benchmark-e-homologação)
+10. [Cobertura de Cenários e Validação](#cobertura-de-cenários-e-validação)
 
 ---
 
@@ -76,21 +75,9 @@ Na avaliação oficial do bootcamp (**v1**), a primeira versão do projeto obtev
 
 A solução adota o padrão **Supervisor Multi-Agente Orientado a Grafo (6 Nós com Roteamento Condicional)**, garantindo segregação estrita entre raciocínio conversacional, verificação eliminatória e cálculo financeiro determinístico:
 
-```mermaid
-flowchart TD
-    START([START / POST /chat]) --> N1["1. processar_entrada<br/>(Parser PDF/OCR + Triagem MCP)"]
-    N1 --> N2["2. recuperar_lastro_rag<br/>(BM25 + Índice de Dispositivos no AgentState)"]
-    N2 --> N3["3. verificar_requisitos<br/>(11 Portões Eliminatórios — NT-02 Seção 6.1)"]
-
-    N3 -->|"Estado Incompleto<br/>(falta carteirinha ou anexo)"| N5["5. sintetizar_resposta<br/>(Multi-Provedor: Antigravity / Gemini / Grok / Local)"]
-    N3 -->|"Impedimento / Exceção<br/>(PENDENTE_DOCUMENTO, NEGADO, ESCALADO_ANALISTA)"| N4A["4A. registrar_impedimento<br/>(Sem cálculo; abre protocolo MCP se Art. 78)"]
-    N3 -->|"Apto para Cálculo<br/>(todos os portões aprovados)"| N4B["4B. calcular_reembolso<br/>(Motor Decimal + 1.835 códigos TUSS + Circulares)"]
-
-    N4A --> N5
-    N4B --> N5
-    N5 --> N6["6. guardrails_e_sanitizacao<br/>(Máscara CPF, Anti-CID, Anti-Terceiro Art. 8º, Anti-Eco)"]
-    N6 --> END([END / ChatResponse])
-```
+<div align="center">
+  <img src="assets/arquitetura.svg" alt="Arquitetura LangGraph de 6 Nós com Roteamento Condicional" width="100%" />
+</div>
 
 ### Componentes Principais
 * **Supervisor LangGraph de 6 Nós (`app/agents/supervisor/`):** Grafo de estados com checkpointer `MemorySaver` indexado por `session_id` e roteamento condicional estrito (`processar_entrada` $\rightarrow$ `recuperar_lastro_rag` $\rightarrow$ `verificar_requisitos` $\rightarrow$ `registrar_impedimento` | `calcular_reembolso` $\rightarrow$ `sintetizar_resposta` $\rightarrow$ `guardrails_e_sanitizacao`).
@@ -271,16 +258,16 @@ docker run -d --env-file .env -p 8000:8000 reembolso
 
 ---
 
-## Resultados de Benchmark e Homologação
+## Cobertura de Cenários e Validação
 
-A solução foi homologada com **100.0 / 100.0 (Pontuação Máxima)** em todos os casos de treino oficiais:
+Todos os fluxos principais e regras regulatórias são validados de forma automatizada pela suíte `pytest` (`17` testes passando) e pelo runner `rodar_treino.py`:
 
-| Cenário de Teste | Desafio Regulatório / Armadilha | Turnos Atendidos | Desfecho | Pontuação |
-| :--- | :--- | :---: | :---: | :---: |
-| **Caso 01 (Dermatologia)** | Anexo prévio ao contexto, recusa de terceiro (Art. 8º), coparticipação 40\% | 8 / 8 | 100\% Correto | **100.0 / 100.0** |
-| **Caso 02 (Psicoterapia)** | 12ª sessão no histórico, exigência de laudo (Art. 73), teto anual (Art. 45) | 9 / 9 | 100\% Correto | **100.0 / 100.0** |
-| **Caso 03 (Prótese OPME)** | Anexo inválido (conta de luz), reenvio correto, escalonamento pericial (Art. 78) | 7 / 7 | 100\% Correto | **100.0 / 100.0** |
-| **Média Geral Consolidada**| **Todos os cenários do edital** | **24 / 24** | **100\%** | **100.0 / 100.0** |
+| Cenário de Validação | Desafio Regulatório / Caso de Borda | Turnos Validados | Desfecho |
+| :--- | :--- | :---: | :---: |
+| **Caso 01 (Dermatologia)** | Anexo prévio ao contexto, recusa de terceiro (Art. 8º), coparticipação 40\% | 8 / 8 | `APROVADO` |
+| **Caso 02 (Psicoterapia)** | 12ª sessão no histórico MCP, exigência de laudo (Art. 73), teto anual (Art. 45) | 9 / 9 | `APROVADO` |
+| **Caso 03 (Prótese OPME)** | Anexo inválido (conta de energia), reenvio correto, escalonamento pericial (Art. 78) | 7 / 7 | `ESCALADO_ANALISTA` |
+| **Regras Extras (`pytest`)** | Vigência temporal (`Circ. 11/2026` vs `02/2026`), 1.835 TUSS, carências, 90d, Art. 38, RAG e API | 14 suítes | **17 / 17 PASS** |
 
 ---
 
