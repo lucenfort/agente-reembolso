@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="SaúdeMais Autonomous Healthcare Reimbursement Agent" width="100%" />
+<img src="assets/banner.svg" alt="SaúdeMais Autonomous Healthcare Reimbursement Agent" width="100%" />
 
 <br/>
 

@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 280" width="100%" height="100%">
+  <defs>
+    <!-- Paleta de Cores em Gradientes -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="45%" stop-color="#0F172A" />
+      <stop offset="80%" stop-color="#1E1B4B" />
+      <stop offset="100%" stop-color="#180D2B" />
+    </linearGradient>
+
+    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+
+    <linearGradient id="accent-indigo-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#9333EA" />
+    </linearGradient>
+
+    <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#A855F7" stop-opacity="0.0" />
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="soft-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Estilos de Animação CSS -->
+    <style>
+      .text-title {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 800;
+        font-size: 32px;
+        letter-spacing: -0.5px;
+      }
+      .text-subtitle {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 500;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+        fill: #94A3B8;
+      }
+      .text-tag {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 600;
+        font-size: 11px;
+        letter-spacing: 0.8px;
+      }
+      .pulse-glow {
+        animation: pulse 4s ease-in-out infinite alternate;
+      }
+      .float-orb {
+        animation: float 6s ease-in-out infinite alternate;
+      }
+      .dash-flow {
+        stroke-dasharray: 6 6;
+        animation: dash 30s linear infinite;
+      }
+      @keyframes pulse {
+        0% { opacity: 0.3; transform: scale(0.98); }
+        100% { opacity: 0.7; transform: scale(1.02); }
+      }
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        100% { transform: translateY(-8px); }
+      }
+      @keyframes dash {
+        to { stroke-dashoffset: -1000; }
+      }
+    </style>
+  </defs>
+
+  <!-- Fundo com Borda Arredondada -->
+  <rect width="900" height="280" rx="16" fill="url(#bg-grad)" stroke="#334155" stroke-width="1.2" />
+
+  <!-- Efeitos de Luz de Fundo (Glow Orbs) -->
+  <circle cx="200" cy="80" r="140" fill="url(#glow-grad)" filter="url(#soft-glow)" class="pulse-glow" />
+  <circle cx="750" cy="140" r="120" fill="url(#glow-grad)" filter="url(#soft-glow)" class="pulse-glow" />
+
+  <!-- Grid Geométrico Sutil -->
+  <g opacity="0.12" stroke="#64748B" stroke-width="0.8">
+    <line x1="60" y1="0" x2="60" y2="280" />
+    <line x1="160" y1="0" x2="160" y2="280" />
+    <line x1="260" y1="0" x2="260" y2="280" />
+    <line x1="360" y1="0" x2="360" y2="280" />
+    <line x1="460" y1="0" x2="460" y2="280" />
+    <line x1="560" y1="0" x2="560" y2="280" />
+    <line x1="660" y1="0" x2="660" y2="280" />
+    <line x1="760" y1="0" x2="760" y2="280" />
+    <line x1="860" y1="0" x2="860" y2="280" />
+    <line x1="0" y1="60" x2="900" y2="60" />
+    <line x1="0" y1="140" x2="900" y2="140" />
+    <line x1="0" y1="220" x2="900" y2="220" />
+  </g>
+
+  <!-- Constelação de Grafo Conectado (Lado Direito) -->
+  <g class="float-orb">
+    <!-- Órbitas Conectivas -->
+    <circle cx="750" cy="140" r="85" fill="none" stroke="#6366F1" stroke-width="1.2" stroke-opacity="0.3" class="dash-flow" />
+    <circle cx="750" cy="140" r="50" fill="none" stroke="#A855F7" stroke-width="1.2" stroke-opacity="0.4" />
+
+    <!-- Linhas de Grafo -->
+    <path d="M 750 140 L 685 85 M 750 140 L 815 85 M 750 140 L 820 190 M 750 140 L 680 195 M 750 140 L 750 55" stroke="#818CF8" stroke-width="1.5" stroke-opacity="0.6" />
+
+    <!-- Nós do Grafo (Nodes) -->
+    <!-- Nó Central: Supervisor -->
+    <circle cx="750" cy="140" r="18" fill="#1E1B4B" stroke="#818CF8" stroke-width="2.5" filter="url(#glow)" />
+    <circle cx="750" cy="140" r="7" fill="#38BDF8" />
+
+    <!-- Nós Satélites -->
+    <circle cx="685" cy="85" r="11" fill="#0F172A" stroke="#38BDF8" stroke-width="2" />
+    <circle cx="685" cy="85" r="4" fill="#38BDF8" />
+
+    <circle cx="815" cy="85" r="11" fill="#0F172A" stroke="#A855F7" stroke-width="2" />
+    <circle cx="815" cy="85" r="4" fill="#A855F7" />
+
+    <circle cx="820" cy="190" r="10" fill="#0F172A" stroke="#4ADE80" stroke-width="2" />
+    <circle cx="820" cy="190" r="3.5" fill="#4ADE80" />
+
+    <circle cx="680" cy="195" r="10" fill="#0F172A" stroke="#F43F5E" stroke-width="2" />
+    <circle cx="680" cy="195" r="3.5" fill="#F43F5E" />
+
+    <circle cx="750" cy="55" r="9" fill="#0F172A" stroke="#FBBF24" stroke-width="1.8" />
+    <circle cx="750" cy="55" r="3" fill="#FBBF24" />
+
+    <!-- Labels dos Nós -->
+    <text x="750" y="172" fill="#E2E8F0" font-size="9.5" font-family="system-ui" font-weight="700" text-anchor="middle">Supervisor</text>
+    <text x="685" y="70" fill="#94A3B8" font-size="8.5" font-family="system-ui" font-weight="600" text-anchor="middle">MCP</text>
+    <text x="815" y="70" fill="#94A3B8" font-size="8.5" font-family="system-ui" font-weight="600" text-anchor="middle">RAG</text>
+    <text x="825" y="210" fill="#94A3B8" font-size="8.5" font-family="system-ui" font-weight="600" text-anchor="middle">Cálculo</text>
+    <text x="675" y="215" fill="#94A3B8" font-size="8.5" font-family="system-ui" font-weight="600" text-anchor="middle">Guardrail</text>
+  </g>
+
+  <!-- Conteúdo Textual Principal (Lado Esquerdo) -->
+  <g transform="translate(56, 48)">
+    <!-- Badge Superior de Categoria -->
+    <g transform="translate(0, 0)">
+      <rect width="210" height="24" rx="12" fill="#1E293B" stroke="#475569" stroke-width="1" />
+      <circle cx="12" cy="12" r="4" fill="#4ADE80" />
+      <text x="24" y="16" fill="#CBD5E1" class="text-tag">SAÚDEMAIS INTELLIGENCE</text>
+    </g>
+
+    <!-- Título Principal com Gradiente -->
+    <text x="0" y="60" fill="url(#primary-grad)" class="text-title">
+      Agente de Reembolso Autônomo
+    </text>
+
+    <!-- Subtítulo e Descrição -->
+    <text x="0" y="88" class="text-subtitle">
+      Orquestração Multi-Agente em Grafo · RAG Normativo Híbrido · Cálculo Determinístico
+    </text>
+
+    <!-- Badges Tecnológicos Inferiores -->
+    <g transform="translate(0, 118)">
+      <!-- Badge LangGraph -->
+      <g transform="translate(0, 0)">
+        <rect width="105" height="26" rx="6" fill="#1E1B4B" stroke="#6366F1" stroke-width="1" />
+        <text x="52.5" y="17" fill="#C7D2FE" class="text-tag" text-anchor="middle">LangGraph</text>
+      </g>
+
+      <!-- Badge FastMCP -->
+      <g transform="translate(113, 0)">
+        <rect width="90" height="26" rx="6" fill="#1E293B" stroke="#38BDF8" stroke-width="1" />
+        <text x="45" y="17" fill="#BAE6FD" class="text-tag" text-anchor="middle">FastMCP</text>
+      </g>
+
+      <!-- Badge LlamaIndex -->
+      <g transform="translate(211, 0)">
+        <rect width="105" height="26" rx="6" fill="#2E1065" stroke="#A855F7" stroke-width="1" />
+        <text x="52.5" y="17" fill="#E9D5FF" class="text-tag" text-anchor="middle">LlamaIndex</text>
+      </g>
+
+      <!-- Badge LGPD / Zero Trust -->
+      <g transform="translate(324, 0)">
+        <rect width="115" height="26" rx="6" fill="#064E3B" stroke="#10B981" stroke-width="1" />
+        <text x="57.5" y="17" fill="#A7F3D0" class="text-tag" text-anchor="middle">LGPD Shield</text>
+      </g>
+    </g>
+  </g>
+</svg>

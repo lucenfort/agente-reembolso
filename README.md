@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="Agente Autônomo de Reembolso SaúdeMais" width="100%" />
+<img src="assets/banner.svg" alt="Agente Autônomo de Reembolso SaúdeMais" width="100%" />
 
 <br/>
 
@@ -114,31 +114,26 @@ A solução adota o padrão **Supervisor Multi-Agente Orientado a Grafo**, garan
 ```text
 agente-reembolso/
 ├── app/                  # Núcleo da aplicação FastAPI e lógica dos agentes
-│   ├── agents/           # Subagentes especializados (triagem, documento, normas, supervisor)
-│   ├── calculo/          # Motor determinístico de cálculo de coparticipação e tetos URS
-│   ├── guardrails/       # Validadores e filtros de LGPD, CPF e sigilo médico
-│   ├── rag/              # Mecanismo de busca vetorial híbrida e cache
-│   ├── tools/            # Clientes MCP e utilitários
-│   ├── llm.py            # Configuração unificada do cliente Gemini 2.5 Flash Lite
+│   ├── agents/           # Subagentes especializados (triagem, documento, normas, supervisor + synthesizer)
+│   ├── calculo/          # Motor determinístico de 12 portões, vigência temporal e tabela TUSS
+│   ├── guardrails/       # Validadores e filtros de LGPD, CPF, anti-eco e sigilo médico
+│   ├── rag/              # Mecanismo de busca híbrida (BM25 + LlamaIndex) e índice de dispositivos
+│   ├── tools/            # Clientes MCP com fallback local resiliente
+│   ├── llm.py            # Camada multi-provedor (Bootcamp, Gemini, Grok, IA Local e Antigravity)
 │   ├── main.py           # Servidor HTTP (/health, /chat, /reset)
 │   └── schemas.py        # Modelos Pydantic v2 de requisição e resposta
-├── avaliacao/            # Motor de avaliação oficial da prova (Juiz LLM)
+├── assets/               # Ativos visuais públicos (banner SVG animado)
+├── avaliacao/            # Motor de avaliação oficial da prova (Juiz LLM multi-provedor)
 ├── anexos/               # Arquivos anexos de exemplo para testes locais
 ├── casos_treino/         # Casos de teste estruturados (01, 02 e 03 com gabaritos)
-├── docs/                 # Documentação técnica detalhada
-│   ├── assets/           # Ativos visuais (banner SVG animado)
-│   ├── README.md         # Índice da documentação
-│   ├── instrucoes_da_prova.md
-│   ├── especificacao_tecnica_e_contratos.md
-│   ├── base_normativa_e_regras.md
-│   └── guia_de_avaliacao_e_treino.md
 ├── ingest/               # Scripts de ingestão e indexação offline
 ├── kb/                   # Base de conhecimento regulatória oficial
 ├── mcp/                  # Servidor FastMCP da operadora de saúde
-├── storage/              # Índice vetorial e dicionário TUSS persistidos
+├── storage/              # Índice vetorial, docstore e tabela TUSS (1.835 códigos)
+├── tests/                # Suíte automatizada de testes ponta a ponta e regras normativas (pytest)
 ├── docker-compose.yml    # Orquestração local de desenvolvimento
 ├── Dockerfile            # Imagem de produção otimizada
-├── requirements.txt      # Dependências fixadas (Python 3.11)
+├── requirements.txt      # Dependências fixadas
 ├── rodar_treino.py       # CLI de execução dos casos de treino
 ├── README.md             # Documentação principal em Português
 └── README.en.md          # Documentação completa em Inglês
@@ -146,15 +141,14 @@ agente-reembolso/
 
 ---
 
-## 📚 Documentação de Referência
+## 📚 Provedores de IA Suportados (`LLM_PROVIDER`)
 
-Consulte a documentação técnica detalhada na pasta [`docs/`](docs/):
-
-* 📖 [Índice Geral da Documentação](docs/README.md)
-* 📋 [Instruções Oficiais da Prova](docs/instrucoes_da_prova.md)
-* 🔌 [Especificação Técnica e Contratos de API](docs/especificacao_tecnica_e_contratos.md)
-* 📜 [Base Normativa e Regras de Negócio da SaúdeMais](docs/base_normativa_e_regras.md)
-* 🧪 [Guia de Avaliação e Casos de Treino](docs/guia_de_avaliacao_e_treino.md)
+O sistema suporta **5 modos de execução** configuráveis via `.env` (veja [`.env.example`](.env.example)):
+- **`antigravity`:** Sintetizador normativo local determinístico (100% offline, sem chave de API externa).
+- **`gemini`:** Google Gemini API (`GEMINI_API_KEY`, padrão `gemini-2.5-flash`).
+- **`grok`:** xAI Grok API (`GROK_API_KEY`, padrão `grok-3-mini`).
+- **`local`:** IA Local compatível com OpenAI ou Ollama (`LOCAL_LLM_URL`, ex.: `http://localhost:11434/v1`).
+- **`bootcamp` / `auto`:** Gateway oficial da banca (`BOOTCAMP_LLM_ENDPOINT` + `BOOTCAMP_API_KEY`).
 
 ---
 
@@ -231,6 +225,14 @@ python ingest/build.py
 
 ## 🧪 Execução dos Testes de Avaliação
 
+### 1. Suíte Automatizada (`pytest` — 16 testes)
+Valida os 3 casos de treino oficiais (24 turnos), todos os 12 portões regulamentares, tabela TUSS (1.835 códigos), vigência temporal (`Circular 11/2026` vs. `Circular 02/2026`), RAG BM25, multi-provedores e endpoints FastAPI:
+
+```bash
+pytest -v
+```
+
+### 2. Runner Oficial com Containers / Servidores HTTP
 Com o MCP (porta 9000) e o agente (porta 8000) em execução:
 
 ```bash
