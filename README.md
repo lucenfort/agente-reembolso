@@ -20,82 +20,53 @@
 
 ---
 
-## 📌 Visão Geral
+## Visão Geral
 
-Implementação do **Agente Autônomo de Reembolso** para a **SaúdeMais Saúde Suplementar**, desenvolvido como solução oficial para o desafio técnico do **Bootcamp AI Engineer 2026 (Prova 339EF4)**.
+Implementação do **Agente Autônomo de Reembolso** para a **SaúdeMais Saúde Suplementar**, desenvolvido como solução para o desafio técnico do **Bootcamp AI Engineer 2026 (Prova 339EF4)** e evoluído com arquitetura verificável, suporte multi-provedor e interface web de auditoria em tempo real.
 
 O sistema atua como um analista regulatório e de atendimento ao cliente, sendo capaz de:
 1. Conduzir diálogos acolhedores, didáticos e empáticos em linguagem natural (*atendimento multi-turno*);
 2. Processar, classificar e extrair dados de documentos fiscais e laudos clínicos em **PDF nativo e imagens escaneadas via OCR**;
 3. Integrar-se via **Model Context Protocol (MCP)** para consultar dados cadastrais, histórico anual de sessões e emitir protocolos oficiais;
-4. Recuperar normativas complexas da SaúdeMais (RN 465/ANS, Regulamento Interno, Tabela URS 2026, Circular 02/2026) por **busca híbrida (vetorial densa + BM25)** com cache em memória;
-5. Calcular deterministamente valores devidos com precisão decimal exata (`Decimal`), decidindo por aprovação, pendência documental ou escalonamento pericial humano;
+4. Recuperar normativas complexas da SaúdeMais (Regulamento Geral, Nota Técnica 02, Anexo IV, Tabela URS 2026 e Circulares) por **busca híbrida (BM25 + índice reverso de dispositivos + LlamaIndex)** com lastro registrado no estado;
+5. Calcular deterministamente valores devidos com precisão decimal exata (`Decimal`), aplicando **12 portões eliminatórios** antes de qualquer cálculo financeiro;
 6. Assegurar conformidade rigorosa com a **LGPD e regras de sigilo** (mascaramento de CPF, supressão de diagnósticos/CID-10 e recusa de consulta a dados de terceiros).
 
 ---
 
-## 📑 Sumário
+## Sumário
 
-1. [Arquitetura do Sistema](#-arquitetura-do-sistema)
-2. [Estrutura do Repositório](#-estrutura-do-repositório)
-3. [Documentação de Referência](#-documentação-de-referência)
-4. [Pré-requisitos e Instalação](#-pré-requisitos-e-instalação)
-5. [Execução do Servidor MCP](#-execução-do-servidor-mcp)
-6. [Execução do Agente FastAPI](#-execução-do-agente-fastapi)
-7. [Ingestão e Construção do Índice Normativo (RAG)](#-ingestão-e-construção-do-índice-normativo-rag)
-8. [Execução dos Testes de Avaliação](#-execução-dos-testes-de-avaliação)
-9. [Build e Execução via Docker](#-build-e-execução-via-docker)
-10. [Resultados de Benchmark e Homologação](#-resultados-de-benchmark-e-homologação)
+1. [Arquitetura do Sistema](#arquitetura-do-sistema)
+2. [Estrutura do Repositório](#estrutura-do-repositório)
+3. [Provedores de IA Suportados](#provedores-de-ia-suportados-llm_provider)
+4. [Pré-requisitos e Instalação](#pré-requisitos-e-instalação)
+5. [Execução do Servidor MCP](#execução-do-servidor-mcp)
+6. [Execução do Agente FastAPI e Interface Web](#execução-do-agente-fastapi-e-interface-web)
+7. [Ingestão e Construção do Índice Normativo (RAG)](#ingestão-e-construção-do-índice-normativo-rag)
+8. [Execução dos Testes de Avaliação](#execução-dos-testes-de-avaliação)
+9. [Build e Execução via Docker](#build-e-execução-via-docker)
+10. [Resultados de Benchmark e Homologação](#resultados-de-benchmark-e-homologação)
 
 ---
 
-## 🏛️ Arquitetura do Sistema
+## Arquitetura do Sistema
 
-A solução adota o padrão **Supervisor Multi-Agente Orientado a Grafo**, garantindo segregação estrita entre raciocínio conversacional e cálculo financeiro:
+A solução adota o padrão **Supervisor Multi-Agente Orientado a Grafo (6 Nós com Roteamento Condicional)**, garantindo segregação estrita entre raciocínio conversacional, verificação eliminatória e cálculo financeiro determinístico:
 
-```
-                  ┌────────────────────────────────────────┐
-                  │          FastAPI HTTP Router           │
-                  │        (/health, /chat, /reset)        │
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │      Guardrail Sanitizer (Entrada)     │
-                  │ (Detecção de Injeção & Anti-Eco Regex) │
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │        Supervisor LangGraph            │
-                  │   (Checkpointer MemorySaver por Sessão)│
-                  └───┬───────────────┼────────────────┬───┘
-                      │               │                │
-      ┌───────────────┘               │                └───────────────┐
-      ▼                               ▼                                ▼
-┌───────────────┐             ┌───────────────┐             ┌────────────────────┐
-│ Agente Triagem│             │Agente Document│             │    Agente Normas   │
-│(MCP Operadora)│             │(PyMuPDF + OCR)│             │ (LlamaIndex + BM25)│
-└───────────────┘             └───────────────┘             └────────────────────┘
-                      │               │                │
-                      └───────────────┼────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │      Motor Determinístico de Cálculo   │
-                  │ (Python Decimal, URS 2026, Circular 02)│
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │       Guardrail Sanitizer (Saída)      │
-                  │ (Máscara CPF ***.456.789-** e Anti-CID)│
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │    Resposta JSON Estruturada Pydantic  │
-                  └────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    START([START / POST /chat]) --> N1["1. processar_entrada<br/>(Parser PDF/OCR + Triagem MCP)"]
+    N1 --> N2["2. recuperar_lastro_rag<br/>(BM25 + Índice de Dispositivos no AgentState)"]
+    N2 --> N3["3. verificar_requisitos<br/>(11 Portões Eliminatórios — NT-02 Seção 6.1)"]
+
+    N3 -->|"Estado Incompleto<br/>(falta carteirinha ou anexo)"| N5["5. sintetizar_resposta<br/>(Multi-Provedor: Antigravity / Gemini / Grok / Local)"]
+    N3 -->|"Impedimento / Exceção<br/>(PENDENTE_DOCUMENTO, NEGADO, ESCALADO_ANALISTA)"| N4A["4A. registrar_impedimento<br/>(Sem cálculo; abre protocolo MCP se Art. 78)"]
+    N3 -->|"Apto para Cálculo<br/>(todos os portões aprovados)"| N4B["4B. calcular_reembolso<br/>(Motor Decimal + 1.835 códigos TUSS + Circulares)"]
+
+    N4A --> N5
+    N4B --> N5
+    N5 --> N6["6. guardrails_e_sanitizacao<br/>(Máscara CPF, Anti-CID, Anti-Terceiro Art. 8º, Anti-Eco)"]
+    N6 --> END([END / ChatResponse])
 ```
 
 ### Componentes Principais
@@ -109,7 +80,7 @@ A solução adota o padrão **Supervisor Multi-Agente Orientado a Grafo**, garan
 
 ---
 
-## 📂 Estrutura do Repositório
+## Estrutura do Repositório
 
 ```text
 agente-reembolso/
@@ -141,7 +112,7 @@ agente-reembolso/
 
 ---
 
-## 📚 Provedores de IA Suportados (`LLM_PROVIDER`)
+## Provedores de IA Suportados (`LLM_PROVIDER`)
 
 O sistema suporta **5 modos de execução** configuráveis via `.env` (veja [`.env.example`](.env.example)):
 - **`antigravity`:** Sintetizador normativo local determinístico (100% offline, sem chave de API externa).
@@ -152,7 +123,7 @@ O sistema suporta **5 modos de execução** configuráveis via `.env` (veja [`.e
 
 ---
 
-## ⚙️ Pré-requisitos e Instalação
+## Pré-requisitos e Instalação
 
 Requer **Python 3.11** e **Docker** (opcional para execução local).
 
@@ -176,7 +147,7 @@ Requer **Python 3.11** e **Docker** (opcional para execução local).
 
 ---
 
-## 🚀 Execução do Servidor MCP
+## Execução do Servidor MCP
 
 O servidor FastMCP simula o sistema legado da operadora e roda na porta 9000.
 
@@ -198,22 +169,24 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/mcp
 
 ---
 
-## 🌐 Execução do Agente FastAPI
+## Execução do Agente FastAPI e Interface Web
 
-Com o ambiente virtual ativado, inicie o servidor FastAPI na porta 8000:
+Com o ambiente virtual ativado, inicie o servidor FastAPI na porta `8000`:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Endpoints Disponíveis:
+### Endpoints e Interface Web Disponíveis:
+* `GET  /`       — **Interface Web Interativa** (Chat Multi-Turno + Upload de Anexos + Painel de Auditoria em tempo real);
+* `GET  /docs`   — Documentação interativa Swagger / OpenAPI;
 * `GET  /health` — Verificação de prontidão do container (`status: "ok"`);
 * `POST /chat`   — Processamento de mensagens multi-turno e anexos Base64;
 * `POST /reset`  — Limpeza de estado de sessões específicas ou globais.
 
 ---
 
-## 🔍 Ingestão e Construção do Índice Normativo (RAG)
+## Ingestão e Construção do Índice Normativo (RAG)
 
 O índice vetorial já se encontra **pré-construído e embutido** em `storage/`. Caso precise reconstruir a base a partir dos documentos de `kb/`:
 
@@ -223,10 +196,10 @@ python ingest/build.py
 
 ---
 
-## 🧪 Execução dos Testes de Avaliação
+## Execução dos Testes de Avaliação
 
-### 1. Suíte Automatizada (`pytest` — 16 testes)
-Valida os 3 casos de treino oficiais (24 turnos), todos os 12 portões regulamentares, tabela TUSS (1.835 códigos), vigência temporal (`Circular 11/2026` vs. `Circular 02/2026`), RAG BM25, multi-provedores e endpoints FastAPI:
+### 1. Suíte Automatizada (`pytest` — 17 testes)
+Valida os 3 casos de treino oficiais (24 turnos), todos os 12 portões regulamentares, tabela TUSS (1.835 códigos), vigência temporal (`Circular 11/2026` vs. `Circular 02/2026`), RAG BM25, multi-provedores, endpoints FastAPI e interface web (`GET /`):
 
 ```bash
 pytest -v
@@ -248,7 +221,7 @@ python rodar_treino.py --caso 01
 
 ---
 
-## 🐳 Build e Execução via Docker
+## Build e Execução via Docker
 
 Para validar a imagem oficial do container em ambiente limpo:
 
@@ -262,7 +235,7 @@ docker run -d --env-file .env -p 8000:8000 reembolso
 
 ---
 
-## 🏆 Resultados de Benchmark e Homologação
+## Resultados de Benchmark e Homologação
 
 A solução foi homologada com **100.0 / 100.0 (Pontuação Máxima)** em todos os casos de treino oficiais:
 

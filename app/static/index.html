@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaúdeMais • Agente Autônomo de Reembolso</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-2: #1e293b;
+      --border: #273449;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #ef4444;
+      --indigo: #818cf8;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0f2c59, #2563eb);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+    }
+
+    .brand h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      border: none;
+      transition: all 0.15s ease;
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .btn-secondary:hover {
+      background: #283548;
+      border-color: #3b4c66;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 16px;
+      padding: 16px 20px;
+      overflow: hidden;
+      max-width: 1520px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+      body {
+        height: auto;
+        overflow: auto;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      background: rgba(30, 41, 59, 0.45);
+    }
+
+    .quick-bar {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.55);
+    }
+
+    .chip-btn {
+      font-size: 11px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: #cbd5e1;
+      border: 1px solid var(--border);
+    }
+
+    .chip-btn:hover {
+      border-color: var(--primary);
+      color: #fff;
+      background: rgba(59, 130, 246, 0.16);
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg {
+      max-width: 85%;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.agent {
+      align-self: flex-start;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .msg.user .msg-meta {
+      color: rgba(255, 255, 255, 0.8);
+      justify-content: flex-end;
+    }
+
+    .attachment-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      background: rgba(15, 23, 42, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .composer {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .selected-file {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #bfdbfe;
+    }
+
+    .selected-file.visible {
+      display: flex;
+    }
+
+    .composer-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .composer-row input[type="text"] {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .composer-row input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Painel Direito — Auditoria / Raio-X */
+    .audit-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.45);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .decision-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: var(--surface-2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .badge-APROVADO { background: rgba(16, 185, 129, 0.16); color: #34d399; border-color: rgba(16, 185, 129, 0.4); }
+    .badge-APROVADO_PARCIAL { background: rgba(59, 130, 246, 0.16); color: #60a5fa; border-color: rgba(59, 130, 246, 0.4); }
+    .badge-PENDENTE_DOCUMENTO { background: rgba(245, 158, 11, 0.16); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); }
+    .badge-ESCALADO_ANALISTA { background: rgba(129, 140, 248, 0.18); color: #a5b4fc; border-color: rgba(129, 140, 248, 0.45); }
+    .badge-NEGADO, .badge-FORA_DE_ESCOPO { background: rgba(239, 68, 68, 0.16); color: #f87171; border-color: rgba(239, 68, 68, 0.4); }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      background: rgba(15, 23, 42, 0.55);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .metric-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .rules-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .rule-chip {
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+
+    .pending-item {
+      font-size: 12.5px;
+      color: #fcd34d;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      margin-top: 6px;
+    }
+
+    .demo-files {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .log-item {
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">SM</div>
+      <div>
+        <h1>SaúdeMais • Agente Autônomo de Reembolso</h1>
+        <p>LangGraph (6 Nós) • RAG Híbrido BM25 • Motor TUSS (1.835 códigos) • FastMCP • Guardrails LGPD</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="pill"><span class="dot"></span> <span id="provider-label">API Online</span></span>
+      <a href="/docs" target="_blank" class="btn-secondary" style="text-decoration:none;">Swagger /docs</a>
+      <button class="btn-secondary" onclick="resetSession()">Nova Sessão</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Coluna Esquerda: Chat -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>Atendimento Multi-Turno do Beneficiário</span>
+        <span style="font-size:11px; color:var(--muted);" id="session-label">Sessão: demo-1</span>
+      </div>
+
+      <div class="quick-bar">
+        <button class="chip-btn" onclick="sendQuick('7042 8813 5561 0029')">Carteirinha Marina (Pleno)</button>
+        <button class="chip-btn" onclick="sendQuick('7042 5199 0887 3310')">Carteirinha Rodrigo (11 sessões)</button>
+        <button class="chip-btn" onclick="sendQuick('7042 3304 7112 5508')">Carteirinha Josefa (OPME)</button>
+        <button class="chip-btn" onclick="sendQuick('Aproveitando, minha esposa carteirinha 7042 5199 0887 3310 fez consulta, quanto volta?')">Guardrail Terceiro</button>
+        <button class="chip-btn" onclick="sendQuick('Meu plano cobre acupuntura?')">Dúvida Acupuntura</button>
+        <button class="chip-btn" onclick="sendQuick('E se eu perder o prazo de 90 dias, o prazo de 150 dias reabre?')">Prazo 90d vs 150d</button>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="msg agent">
+          <div class="msg-meta">Agente SaúdeMais</div>
+          <div>Olá! Sou o agente autônomo de reembolso da <strong>SaúdeMais</strong>. Você pode enviar uma mensagem, usar os atalhos acima ou anexar um comprovante em PDF/imagem abaixo (inclusive os arquivos de demonstração na coluna ao lado).</div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="selected-file" id="selected-file">
+          <span id="selected-file-name"></span>
+          <button class="btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="clearFile()">Remover</button>
+        </div>
+        <div class="composer-row">
+          <input type="file" id="file-input" accept=".pdf,image/*" style="display:none;" onchange="onFilePicked(event)" />
+          <button class="btn-secondary" onclick="document.getElementById('file-input').click()">📎 Anexar</button>
+          <input type="text" id="msg-input" placeholder="Digite sua mensagem ou informe sua carteirinha..." onkeydown="if(event.key==='Enter') sendMessage()" />
+          <button class="btn-primary" id="send-btn" onclick="sendMessage()">Enviar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Coluna Direita: Raio-X em Tempo Real -->
+    <section class="panel">
+      <div class="panel-header">
+        <span>Raio-X Técnico e Auditoria em Tempo Real</span>
+        <span style="font-size:11px; color:var(--muted);">Saída Estruturada Pydantic</span>
+      </div>
+
+      <div class="audit-body">
+        <div class="card">
+          <div class="card-title">Decisão Atual do Grafo</div>
+          <span class="decision-badge" id="audit-decisao">AGUARDANDO DADOS</span>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">Categoria Assistencial</div>
+            <div class="metric-value" id="audit-categoria">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Protocolo MCP</div>
+            <div class="metric-value" id="audit-protocolo">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Valor Solicitado</div>
+            <div class="metric-value" id="audit-solicitado">—</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Valor Reembolsado</div>
+            <div class="metric-value" id="audit-reembolso" style="color:var(--emerald);">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Dispositivos Normativos Aplicados (Lastro RAG + Motor)</div>
+          <div class="rules-list" id="audit-regras">
+            <span style="font-size:12px; color:var(--muted);">Nenhum dispositivo acionado ainda.</span>
+          </div>
+        </div>
+
+        <div class="card" id="pendencias-card" style="display:none;">
+          <div class="card-title">Pendências Documentais (NT-02)</div>
+          <div id="audit-pendencias"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Anexos de Demonstração (1 clique para anexar)</div>
+          <div class="demo-files" id="demo-files">
+            <span style="font-size:12px; color:var(--muted);">Carregando arquivos de exemplo...</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Log de Turnos da Sessão</div>
+          <div class="log-list" id="audit-log">
+            <span style="font-size:12px; color:var(--muted);">Nenhum turno executado ainda.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let sessionId = "demo-" + Math.random().toString(36).slice(2, 8);
+    let pendingAnexo = null;
+    let turnCount = 0;
+
+    document.getElementById("session-label").textContent = "Sessão: " + sessionId;
+
+    function formatBrl(val) {
+      if (val === null || val === undefined) return "—";
+      return Number(val).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function renderFormatted(text) {
+      return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    }
+
+    function appendMessage(role, text, attachmentName) {
+      const box = document.getElementById("messages");
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      const meta = role === "user" ? "Você" : "Agente SaúdeMais";
+      let html = `<div class="msg-meta">${meta}</div><div>${renderFormatted(text || "(anexo enviado)")}</div>`;
+      if (attachmentName) {
+        html += `<div class="attachment-tag">📎 ${escapeHtml(attachmentName)}</div>`;
+      }
+      div.innerHTML = html;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function updateAudit(data) {
+      const decEl = document.getElementById("audit-decisao");
+      const dec = data.decisao || "AGUARDANDO DADOS";
+      decEl.textContent = dec;
+      decEl.className = "decision-badge " + (data.decisao ? "badge-" + data.decisao : "");
+
+      document.getElementById("audit-categoria").textContent = data.categoria_documento || "—";
+      document.getElementById("audit-protocolo").textContent = data.protocolo || "—";
+      document.getElementById("audit-solicitado").textContent = formatBrl(data.valor_solicitado_brl);
+      document.getElementById("audit-reembolso").textContent = formatBrl(data.valor_reembolso_brl);
+
+      const regrasBox = document.getElementById("audit-regras");
+      const regras = data.regras_aplicadas || [];
+      if (regras.length) {
+        regrasBox.innerHTML = regras.map(r => `<span class="rule-chip">${escapeHtml(r)}</span>`).join("");
+      } else {
+        regrasBox.innerHTML = `<span style="font-size:12px; color:var(--muted);">Nenhum dispositivo acionado ainda.</span>`;
+      }
+
+      const pendCard = document.getElementById("pendencias-card");
+      const pendBox = document.getElementById("audit-pendencias");
+      const pend = data.pendencias || [];
+      if (pend.length) {
+        pendCard.style.display = "block";
+        pendBox.innerHTML = pend.map(p => `<div class="pending-item">${escapeHtml(p)}</div>`).join("");
+      } else {
+        pendCard.style.display = "none";
+        pendBox.innerHTML = "";
+      }
+
+      const logBox = document.getElementById("audit-log");
+      if (turnCount === 1) logBox.innerHTML = "";
+      const item = document.createElement("div");
+      item.className = "log-item";
+      item.innerHTML = `<span>Turno ${turnCount}</span><strong>${escapeHtml(dec)} ${data.valor_reembolso_brl !== null && data.valor_reembolso_brl !== undefined ? "• " + formatBrl(data.valor_reembolso_brl) : ""}</strong>`;
+      logBox.prepend(item);
+    }
+
+    function setFile(anexoObj) {
+      pendingAnexo = anexoObj;
+      const bar = document.getElementById("selected-file");
+      document.getElementById("selected-file-name").textContent = "📎 Anexo pronto: " + anexoObj.filename;
+      bar.classList.add("visible");
+    }
+
+    function clearFile() {
+      pendingAnexo = null;
+      document.getElementById("file-input").value = "";
+      document.getElementById("selected-file").classList.remove("visible");
+    }
+
+    function onFilePicked(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const b64 = String(reader.result).split(",")[1] || "";
+        setFile({
+          filename: file.name,
+          mime_type: file.type || "application/pdf",
+          base64: b64
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function sendQuick(text) {
+      document.getElementById("msg-input").value = text;
+      sendMessage();
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("msg-input");
+      const btn = document.getElementById("send-btn");
+      const texto = input.value.trim();
+      if (!texto && !pendingAnexo) return;
+
+      const anexoEnviado = pendingAnexo;
+      appendMessage("user", texto, anexoEnviado ? anexoEnviado.filename : null);
+      input.value = "";
+      clearFile();
+      btn.disabled = true;
+      btn.textContent = "Analisando...";
+
+      try {
+        const resp = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            mensagem: texto,
+            anexo: anexoEnviado
+          })
+        });
+        const data = await resp.json();
+        turnCount += 1;
+        appendMessage("agent", data.resposta || "(sem resposta)");
+        updateAudit(data);
+      } catch (err) {
+        appendMessage("agent", "Erro de comunicação com o servidor: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Enviar";
+      }
+    }
+
+    async function resetSession() {
+      await fetch("/reset", { method: "POST" });
+      sessionId = "demo-" + Math.random().toString(36).slice(2, 8);
+      turnCount = 0;
+      document.getElementById("session-label").textContent = "Sessão: " + sessionId;
+      document.getElementById("messages").innerHTML = `
+        <div class="msg agent">
+          <div class="msg-meta">Agente SaúdeMais</div>
+          <div>Sessão reiniciada! Envie sua carteirinha, anexe um comprovante ou faça uma dúvida normativa.</div>
+        </div>`;
+      document.getElementById("audit-log").innerHTML = `<span style="font-size:12px; color:var(--muted);">Nenhum turno executado ainda.</span>`;
+      updateAudit({ decisao: null, categoria_documento: null, protocolo: null, valor_solicitado_brl: null, valor_reembolso_brl: null, regras_aplicadas: [], pendencias: [] });
+    }
+
+    async function loadDemoInfo() {
+      try {
+        const res = await fetch("/demo/anexos").then(r => r.json());
+        if (res.provider) {
+          document.getElementById("provider-label").textContent = "Provedor: " + res.provider.toUpperCase();
+        }
+        const box = document.getElementById("demo-files");
+        if (!res.arquivos || !res.arquivos.length) {
+          box.innerHTML = `<span style="font-size:12px; color:var(--muted);">Nenhum anexo de exemplo encontrado.</span>`;
+          return;
+        }
+        box.innerHTML = res.arquivos.map(name =>
+          `<button class="chip-btn" onclick="attachDemo('${escapeHtml(name)}')">📄 ${escapeHtml(name)}</button>`
+        ).join("");
+      } catch (_) {}
+    }
+
+    async function attachDemo(filename) {
+      const data = await fetch("/demo/anexos/" + encodeURIComponent(filename)).then(r => r.json());
+      if (data.base64) {
+        setFile(data);
+      }
+    }
+
+    loadDemoInfo();
+  </script>
+</body>
+</html>

@@ -502,3 +502,25 @@ def test_endpoints_fastapi_health_chat_reset(monkeypatch):
     assert "acupuntura" in dados["resposta"].lower()
     assert "indicação" in dados["resposta"].lower()
 
+
+def test_interface_web_e_anexos_demo():
+    """Valida a interface web servida em GET / e os endpoints de demonstração."""
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+
+    r_home = client.get("/")
+    assert r_home.status_code == 200
+    assert "SaúdeMais" in r_home.text
+    assert "Raio-X Técnico" in r_home.text
+
+    r_list = client.get("/demo/anexos")
+    assert r_list.status_code == 200
+    arquivos = r_list.json().get("arquivos", [])
+    assert "recibo_consulta_dermatologia.pdf" in arquivos
+
+    r_file = client.get("/demo/anexos/recibo_consulta_dermatologia.pdf")
+    assert r_file.status_code == 200
+    assert len(r_file.json().get("base64", "")) > 100
+
+

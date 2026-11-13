@@ -20,121 +20,89 @@
 
 ---
 
-## 📌 Overview
+## Overview
 
-Production-ready implementation of the **Autonomous Reimbursement Agent** for **SaúdeMais Supplementary Healthcare**, developed as the official submission for the **Bootcamp AI Engineer 2026 Technical Challenge (Exam 339EF4)**.
+Implementation of the **Autonomous Reimbursement Agent** for **SaúdeMais Supplementary Healthcare**, originally developed for the **Bootcamp AI Engineer 2026 Technical Challenge (Exam 339EF4)** and evolved with a verifiable 6-node architecture, multi-provider LLM support, and a real-time audit web interface.
 
 The system operates as an autonomous regulatory and customer service analyst, featuring:
 1. Conducting multi-turn empathetic and contextual natural language dialogues with health plan beneficiaries;
 2. Parsing, classifying, and extracting metadata from medical receipts and clinical reports in **native PDF and scanned images via OCR**;
 3. Interfacing via the **Model Context Protocol (MCP)** to verify eligibility, query annual treatment history, and register official service protocols;
-4. Retrieving complex regulatory devices (ANS RN 465, Internal Bylaws, 2026 URS Table, and Circular 02/2026) via **hybrid semantic search (dense embeddings + BM25)** with in-memory caching;
-5. Executing deterministic calculations with centesimal precision (`Decimal`), deciding on approval, pending documentation, or escalation to human expert audit;
+4. Retrieving complex regulatory devices (General Bylaws, Technical Note 02, Annex IV, 2026 URS Table, and Circulars) via **hybrid retrieval (BM25 + reverse device index + LlamaIndex)** with evidence grounded in `AgentState`;
+5. Executing deterministic calculations with centesimal precision (`Decimal`), enforcing **12 eliminatory verification gates** before any financial calculation;
 6. Enforcing strict **LGPD privacy and medical secrecy guardrails** (mandatory CPF masking, suppression of ICD-10 diagnostic codes, and refusal of third-party data queries).
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
-1. [System Architecture](#-system-architecture)
-2. [Repository Structure](#-repository-structure)
-3. [Reference Documentation](#-reference-documentation)
-4. [Prerequisites and Setup](#-prerequisites-and-setup)
-5. [Running the MCP Server](#-running-the-mcp-server)
-6. [Running the FastAPI Agent](#-running-the-fastapi-agent)
-7. [Ingestion and RAG Index Build](#-ingestion-and-rag-index-build)
-8. [Running the Evaluation Test Suite](#-running-the-evaluation-test-suite)
-9. [Docker Build and Execution](#-docker-build-and-execution)
-10. [Benchmark and Homologation Results](#-benchmark-and-homologation-results)
+1. [System Architecture](#system-architecture)
+2. [Repository Structure](#repository-structure)
+3. [Supported AI Providers](#supported-ai-providers-llm_provider)
+4. [Prerequisites and Setup](#prerequisites-and-setup)
+5. [Running the MCP Server](#running-the-mcp-server)
+6. [Running the FastAPI Agent and Web UI](#running-the-fastapi-agent-and-web-ui)
+7. [Ingestion and RAG Index Build](#ingestion-and-rag-index-build)
+8. [Running the Evaluation Test Suite](#running-the-evaluation-test-suite)
+9. [Docker Build and Execution](#docker-build-and-execution)
+10. [Benchmark and Homologation Results](#benchmark-and-homologation-results)
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
-The architecture follows a **Graph-Oriented Multi-Agent Supervisor Pattern**, ensuring complete separation between conversational reasoning and financial calculation:
+The architecture follows a **6-Node Graph-Oriented Multi-Agent Supervisor Pattern with Conditional Routing**, ensuring complete separation between verification, conversational reasoning, and deterministic financial calculation:
 
-```
-                  ┌────────────────────────────────────────┐
-                  │          FastAPI HTTP Router           │
-                  │        (/health, /chat, /reset)        │
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │       Guardrail Sanitizer (Input)      │
-                  │(Prompt Injection & Anti-Echo Detection)│
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │         LangGraph Supervisor           │
-                  │ (MemorySaver Checkpointer per Session) │
-                  └───┬───────────────┼────────────────┬───┘
-                      │               │                │
-      ┌───────────────┘               │                └───────────────┐
-      ▼                               ▼                                ▼
-┌───────────────┐             ┌───────────────┐             ┌────────────────────┐
-│ Triage Agent  │             │Document Agent │             │  Normative RAG     │
-│  (MCP Client) │             │(PyMuPDF + OCR)│             │ (LlamaIndex + BM25)│
-└───────────────┘             └───────────────┘             └────────────────────┘
-                      │               │                │
-                      └───────────────┼────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │    Deterministic Calculation Engine    │
-                  │(Python Decimal, URS 2026, Circular 02) │
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │      Guardrail Sanitizer (Output)      │
-                  │ (CPF Mask ***.456.789-** & Anti-ICD)   │
-                  └───────────────────┬────────────────────┘
-                                      │
-                                      ▼
-                  ┌────────────────────────────────────────┐
-                  │     Pydantic Structured JSON Output    │
-                  └────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    START([START / POST /chat]) --> N1["1. processar_entrada<br/>(PDF/OCR Parser + MCP Triage)"]
+    N1 --> N2["2. recuperar_lastro_rag<br/>(BM25 + Device Index into AgentState)"]
+    N2 --> N3["3. verificar_requisitos<br/>(11 Eliminatory Gates — NT-02 Section 6.1)"]
+
+    N3 -->|"Incomplete State<br/>(missing card or attachment)"| N5["5. sintetizar_resposta<br/>(Multi-Provider: Antigravity / Gemini / Grok / Local)"]
+    N3 -->|"Blocker / Exception<br/>(PENDENTE_DOCUMENTO, NEGADO, ESCALADO_ANALISTA)"| N4A["4A. registrar_impedimento<br/>(No calculation; opens MCP protocol if Art. 78)"]
+    N3 -->|"Eligible for Calculation<br/>(all gates passed)"| N4B["4B. calcular_reembolso<br/>(Decimal Engine + 1,835 TUSS codes + Circulars)"]
+
+    N4A --> N5
+    N4B --> N5
+    N5 --> N6["6. guardrails_e_sanitizacao<br/>(CPF Mask, Anti-ICD, Anti-Third-Party Art. 8, Anti-Echo)"]
+    N6 --> END([END / ChatResponse])
 ```
 
 ### Core Modules
-* **LangGraph Supervisor (`app/agents/supervisor/`):** State graph with `MemorySaver` checkpointer keyed by `session_id`, ensuring complete isolation across concurrent sessions.
-* **Triage & Eligibility Subagent (`app/agents/triagem/`):** 16-digit card validation and FastMCP integration (`consultar_beneficiario`, `consultar_historico`, `abrir_protocolo`).
-* **Document & OCR Subagent (`app/agents/documento/`):** Structured invoice metadata extraction via PyMuPDF and Tesseract OCR from Base64 payloads.
-* **Normative RAG Subagent (`app/rag/`):** LlamaIndex hybrid retrieval with in-memory LRU cache (`@lru_cache`).
-* **Deterministic Calculation Engine (`app/calculo/`):** Python pipeline with `Decimal` precision, enforcing the 2026 URS Table (R$ 95.10), Circular 02/2026 copay factors by plan (Pleno & Essencial), and regulatory caps.
-* **Guardrails Sanitizer (`app/guardrails/`):** Dual-layer protection for CPF anonymization, ICD-10 diagnostic term neutralization, and third-party request blocking (Art. 8).
+* **6-Node LangGraph Supervisor (`app/agents/supervisor/`):** State graph with `MemorySaver` checkpointer keyed by `session_id` and strict conditional routing before calculation.
+* **Triage & Eligibility Subagent (`app/agents/triagem/`):** 16-digit card validation (separating titular vs. third-party cards in the same message) and FastMCP integration with resilient local fallback.
+* **Document & OCR Subagent (`app/agents/documento/`):** Structured invoice metadata extraction via PyMuPDF/pypdf and Tesseract OCR from Base64 payloads, validating NT-02 fields and Annex IV exclusions.
+* **Normative RAG Subagent (`app/rag/`):** Hybrid retrieval (**BM25 Okapi + reverse device index + LlamaIndex**) storing `evidencias_rag` in `AgentState` and filtering out revoked norms (`CIRC-04-2025`).
+* **12-Gate Deterministic Engine (`app/calculo/`):** Python pipeline with `Decimal` precision integrated with **1,835 TUSS codes** from `storage/tuss_tabela.json`, temporal circular rules (`Circular 11/2026` vs. `Circular 02/2026`), continued therapy cap (`2.6 URS`), and exact waiting periods.
+* **Multi-Provider LLM Layer (`app/llm.py` & `avaliacao/llm.py`):** Native support for `bootcamp`, `gemini`, `grok`, `local` (Ollama/LM Studio/vLLM), and `antigravity`.
+* **Guardrails Sanitizer (`app/guardrails/`):** Dual-layer protection for CPF anonymization, ICD-10 suppression, anti-echo, and third-party request blocking (Art. 8).
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
 agente-reembolso/
 ├── app/                  # FastAPI application core and agent logic
-│   ├── agents/           # Specialized subagents (triage, document, norms, supervisor)
-│   ├── calculo/          # Deterministic calculation engine for copay and URS caps
-│   ├── guardrails/       # LGPD, CPF, and medical privacy validators/filters
-│   ├── rag/              # Hybrid vector retrieval engine and caching
-│   ├── tools/            # MCP clients and utilities
-│   ├── llm.py            # Unified client configuration for Gemini 2.5 Flash Lite
-│   ├── main.py           # HTTP Server (/health, /chat, /reset)
+│   ├── agents/           # Specialized subagents (triage, document, norms, supervisor + synthesizer)
+│   ├── calculo/          # 12-gate deterministic calculation engine and TUSS lookup
+│   ├── guardrails/       # LGPD, CPF, anti-echo, and medical privacy filters
+│   ├── rag/              # Hybrid BM25 + LlamaIndex retrieval engine
+│   ├── static/           # Interactive Web UI (Chat + Real-time Audit Panel)
+│   ├── tools/            # MCP client with resilient local fallback
+│   ├── llm.py            # Multi-provider LLM layer (Bootcamp, Gemini, Grok, Local, Antigravity)
+│   ├── main.py           # HTTP Server (/, /docs, /health, /chat, /reset)
 │   └── schemas.py        # Pydantic v2 request and response schemas
-├── avaliacao/            # Official evaluation engine (LLM Judge)
+├── assets/               # Public visual assets (animated SVG banner)
+├── avaliacao/            # Official evaluation engine (Multi-provider LLM Judge)
 ├── anexos/               # Sample attachment files for local testing
 ├── casos_treino/         # Structured training scenarios (01, 02, and 03 with ground truth)
-├── docs/                 # Detailed technical documentation
-│   ├── assets/           # Visual assets (animated SVG banner)
-│   ├── README.md         # Documentation index
-│   ├── instrucoes_da_prova.md
-│   ├── especificacao_tecnica_e_contratos.md
-│   ├── base_normativa_e_regras.md
-│   └── guia_de_avaliacao_e_treino.md
 ├── ingest/               # Ingestion and offline indexing scripts
 ├── kb/                   # Official regulatory knowledge base
 ├── mcp/                  # Healthcare operator FastMCP server
-├── storage/              # Persisted vector index and TUSS procedure dictionary
+├── storage/              # Persisted vector index, docstore, and 1,835-entry TUSS dictionary
+├── tests/                # Automated pytest suite (17 tests)
 ├── docker-compose.yml    # Local development orchestration
 ├── Dockerfile            # Optimized production container image
 ├── requirements.txt      # Pinned dependencies (Python 3.11)
@@ -145,19 +113,18 @@ agente-reembolso/
 
 ---
 
-## 📚 Reference Documentation
+## Supported AI Providers (`LLM_PROVIDER`)
 
-For detailed technical references, explore the [`docs/`](docs/) directory:
-
-* 📖 [Documentation Index](docs/README.md)
-* 📋 [Official Challenge Guidelines](docs/instrucoes_da_prova.md)
-* 🔌 [API Specification and Contracts](docs/especificacao_tecnica_e_contratos.md)
-* 📜 [SaúdeMais Business Rules & Regulatory Base](docs/base_normativa_e_regras.md)
-* 🧪 [Evaluation Guide & Training Scenarios](docs/guia_de_avaliacao_e_treino.md)
+The system supports **5 execution modes** configurable via `.env` (see [`.env.example`](.env.example)):
+- **`antigravity`:** Deterministic local normative synthesizer (100% offline, zero API cost).
+- **`gemini`:** Google Gemini API (`GEMINI_API_KEY`, default `gemini-2.5-flash`).
+- **`grok`:** xAI Grok API (`GROK_API_KEY`, default `grok-3-mini`).
+- **`local`:** OpenAI-compatible Local AI or Ollama (`LOCAL_LLM_URL`, e.g. `http://localhost:11434/v1`).
+- **`bootcamp` / `auto`:** Official exam gateway (`BOOTCAMP_LLM_ENDPOINT` + `BOOTCAMP_API_KEY`).
 
 ---
 
-## ⚙️ Prerequisites and Setup
+## Prerequisites and Setup
 
 Requires **Python 3.11** and **Docker** (optional for local runs).
 
@@ -181,7 +148,7 @@ Requires **Python 3.11** and **Docker** (optional for local runs).
 
 ---
 
-## 🚀 Running the MCP Server
+## Running the MCP Server
 
 The FastMCP server simulates the legacy operator backend on port 9000.
 
@@ -203,22 +170,24 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:9000/mcp
 
 ---
 
-## 🌐 Running the FastAPI Agent
+## Running the FastAPI Agent and Web UI
 
-With the virtual environment activated, launch the FastAPI server on port 8000:
+With your virtual environment activated, launch the FastAPI server on port `8000`:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Available Endpoints:
+### Available Endpoints and Web UI:
+* `GET  /`       — **Interactive Web UI** (Multi-turn Chat + File Upload + Real-Time Audit Panel);
+* `GET  /docs`   — Interactive Swagger / OpenAPI docs;
 * `GET  /health` — Readiness probe (`status: "ok"`);
 * `POST /chat`   — Multi-turn message and Base64 attachment processing;
 * `POST /reset`  — State reset for specific or global sessions.
 
 ---
 
-## 🔍 Ingestion and RAG Index Build
+## Ingestion and RAG Index Build
 
 The vector index is **pre-built and bundled** in `storage/`. To rebuild the database from `kb/`:
 
@@ -228,7 +197,14 @@ python ingest/build.py
 
 ---
 
-## 🧪 Running the Evaluation Test Suite
+## Running the Evaluation Test Suite
+
+### 1. Automated Suite (`pytest` — 17 tests)
+```bash
+pytest -v
+```
+
+### 2. Official Training Runner against Live Servers
 
 With both the MCP server (port 9000) and the agent (port 8000) running:
 
@@ -245,7 +221,7 @@ python rodar_treino.py --caso 01
 
 ---
 
-## 🐳 Docker Build and Execution
+## Docker Build and Execution
 
 To validate the container package in a clean environment:
 
@@ -259,7 +235,7 @@ docker run -d --env-file .env -p 8000:8000 reembolso
 
 ---
 
-## 🏆 Benchmark and Homologation Results
+## Benchmark and Homologation Results
 
 The agent achieved a **100.0 / 100.0 (Perfect Score)** across all official training scenarios:
 
