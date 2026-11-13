@@ -28,4 +28,5 @@ jobs:
       - name: Run full pytest suite (17 tests)
         env:
           LLM_PROVIDER: antigravity
-        run: pytest -v
+          PYTHONPATH: .
+        run: python -m pytest -v
