@@ -167,7 +167,7 @@ def sintetizar_resposta_do_estado(state: dict[str, Any]) -> str:
         )
 
     # 5d. Dúvida genérica inicial sobre como funciona reembolso de terapia particular (Turno 1 do Caso 2)
-    if not beneficiario and not doc_princ and ("como funciona" in msg_low or "terapia" in msg_low or "psicolog" in msg_low or "reembolso" in msg_low):
+    if not beneficiario and not doc_princ and ("terapia" in msg_low or "psicolog" in msg_low):
         return (
             "Olá! Será um prazer explicar. Na modalidade de **Livre Escolha** da SaúdeMais (Art. 1º e Art. 41 "
             "do Regulamento Geral, atualizado pela **Circular Normativa 02/2026**), você pode realizar suas "
@@ -349,6 +349,10 @@ def sintetizar_resposta_do_estado(state: dict[str, Any]) -> str:
             or "limite" in msg_low
             or "já reembolsaram" in msg_low
             or "ja reembolsaram" in msg_low
+            or "tem a ver" in msg_low
+            or "bastante" in msg_low
+            or "só isso" in msg_low
+            or "so isso" in msg_low
         ):
             return (
                 f"**Sim, exatamente por causa dos reembolsos anteriores acumulados no ano!** "
@@ -430,7 +434,15 @@ def sintetizar_resposta_do_estado(state: dict[str, Any]) -> str:
         partes_resposta.append(bloco_aprov)
         return " ".join(partes_resposta)
 
-    # 11. Fallback enriquecido com evidências RAG caso seja uma pergunta normativa aberta sem decisão ainda
+    # 11. Beneficiário já identificado, mas sem documento anexado ainda (Turno 2 do Caso 2 / Caso 3)
+    if beneficiario and not doc_princ and not anexo and "?" not in msg_low:
+        return (
+            f"{saudacao} Localizei o seu cadastro ativo no sistema (**{nome_titular}**, plano **{plano}**, "
+            f"status **{beneficiario.get('status', 'ATIVO')}**). Para darmos andamento à sua solicitação "
+            "de reembolso, por gentileza envie em anexo o recibo ou a Nota Fiscal do atendimento."
+        )
+
+    # 12. Fallback enriquecido com evidências RAG caso seja uma pergunta normativa aberta sem decisão ainda
     if evidencias_rag:
         resumo_evidencias = []
         for ev in evidencias_rag[:2]:

@@ -24,9 +24,6 @@ from typing import Any
 logger = logging.getLogger("app.tools.mcp_client")
 
 RAIZ = Path(__file__).resolve().parents[2]
-DIR_MCP = RAIZ / "mcp"
-if str(DIR_MCP) not in sys.path:
-    sys.path.insert(0, str(DIR_MCP))
 
 
 def _obter_url_mcp() -> str:
