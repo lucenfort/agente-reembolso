@@ -58,3 +58,6 @@ Thumbs.db
 docs/
 /docs/**
 
+# Pacotes compactados de entrega / backup local
+*.zip
+
