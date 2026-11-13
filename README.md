@@ -15,6 +15,8 @@
 [![FastMCP](https://img.shields.io/badge/Protocolo-FastMCP%201.29-0284C7?style=flat-square)](https://modelcontextprotocol.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-059669?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com)
+[![Tests](https://github.com/lucenfort/agente-reembolso/actions/workflows/tests.yml/badge.svg)](https://github.com/lucenfort/agente-reembolso/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10B981?style=flat-square)](LICENSE)
 
 </div>
 
@@ -206,6 +208,10 @@ $env:LLM_PROVIDER="antigravity"; $env:MCP_OPERADORA_URL="http://127.0.0.1:9000";
 * `GET  /health` — Verificação de prontidão do container (`status: "ok"`);
 * `POST /chat`   — Processamento de mensagens multi-turno e anexos Base64;
 * `POST /reset`  — Limpeza de estado de sessões específicas ou globais.
+
+<div align="center">
+  <img src="assets/web_ui_preview.jpg" alt="Interface Web Interativa e Raio-X Técnico em Tempo Real" width="100%" />
+</div>
 
 ---
 

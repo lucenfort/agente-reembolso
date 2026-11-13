@@ -15,6 +15,8 @@
 [![FastMCP](https://img.shields.io/badge/Protocol-FastMCP%201.29-0284C7?style=flat-square)](https://modelcontextprotocol.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-059669?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Container-Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com)
+[![Tests](https://github.com/lucenfort/agente-reembolso/actions/workflows/tests.yml/badge.svg)](https://github.com/lucenfort/agente-reembolso/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10B981?style=flat-square)](LICENSE)
 
 </div>
 
@@ -25,12 +27,31 @@
 Implementation of the **Autonomous Reimbursement Agent** for **SaúdeMais Supplementary Healthcare**, originally developed for the **Bootcamp AI Engineer 2026 Technical Challenge (Exam 339EF4)** and evolved with a verifiable 6-node architecture, multi-provider LLM support, and a real-time audit web interface.
 
 The system operates as an autonomous regulatory and customer service analyst, featuring:
-1. Conducting multi-turn empathetic and contextual natural language dialogues with health plan beneficiaries;
+1. Conducting multi-turn empathetic and contextual natural language dialogues with health plan beneficiaries (including out-of-order messages and attachments);
 2. Parsing, classifying, and extracting metadata from medical receipts and clinical reports in **native PDF and scanned images via OCR**;
 3. Interfacing via the **Model Context Protocol (MCP)** to verify eligibility, query annual treatment history, and register official service protocols;
 4. Retrieving complex regulatory devices (General Bylaws, Technical Note 02, Annex IV, 2026 URS Table, and Circulars) via **hybrid retrieval (BM25 + reverse device index + LlamaIndex)** with evidence grounded in `AgentState`;
-5. Executing deterministic calculations with centesimal precision (`Decimal`), enforcing **12 eliminatory verification gates** before any financial calculation;
-6. Enforcing strict **LGPD privacy and medical secrecy guardrails** (mandatory CPF masking, suppression of ICD-10 diagnostic codes, and refusal of third-party data queries).
+5. Executing deterministic calculations with centesimal precision (`Decimal`), enforcing **12 eliminatory verification gates** and consulting **1,835 TUSS codes** before any financial calculation;
+6. Enforcing strict **LGPD privacy and medical secrecy guardrails** (mandatory CPF masking, suppression of ICD-10 diagnostic codes, and refusal of third-party data queries without terminating the active session);
+7. Exposing an **Interactive Web UI (`GET /`)** with a real-time **Technical X-Ray** panel to inspect graph decisions, calculations, MCP protocols, and applied regulatory devices.
+
+### Original Challenge Summary
+The technical challenge simulated real customer support for a supplementary health insurer (**SaúdeMais**) governed by dense regulatory rules, requiring:
+- **Out-of-order conversations:** handling attachments sent before the membership card, or missing documents arriving in later turns without losing the active workflow;
+- **Temporal validity and norm hierarchy:** applying rules by event date (`Circular 11/2026` vs. `Circular 02/2026`), filtering out revoked norms (`Circular 04/2025` revoked by `09/2025`), and cross-checking legacy MCP data (such as annual therapy session counts);
+- **Approval limits and OPME:** escalating special materials and high-value claims (Art. 78) by opening an MCP protocol while strictly prohibiting prior value estimates;
+- **Privacy and LGPD:** preventing full CPF leaks, ICD-10 exposure, and third-party queries within the same session.
+
+### Improvements Implemented Beyond the Challenge (and Why)
+
+| Improvement Implemented | Why It Was Built |
+| :--- | :--- |
+| **6-Node LangGraph with Conditional Routing** | Ensures `calcular_reembolso` is only reachable after passing all **11 eliminatory gates** (`verificar_requisitos`), preventing premature approvals or invalid estimates. |
+| **Unified MCP History Reader (`/beneficiario` + `/historico`)** | Guarantees consistent `sessoes_terapia_ano` tracking regardless of which MCP endpoint provides the counter, enforcing clinical report requirements (Art. 73). |
+| **Deterministic `Decimal` Engine + 1,835 TUSS Codes + Temporal Rules** | Eliminates LLM arithmetic drift in financial calculations, covers all TUSS groups (including description-based inference), and enforces date-based circulars (`11/2026` vs. `02/2026`), waiting periods (`15d/60d/150d/180d/0d`), and medical orders (Art. 38). |
+| **Offline Hybrid RAG (`BM25` + Reverse Device Index)** | Removes exclusive reliance on external embedding gateways, persists `evidencias_rag` in `AgentState`, and filters revoked norms. |
+| **Multi-Provider LLM Layer with Automatic Fallback** | Supports switching dynamically across `bootcamp`, `gemini`, `grok`, `local` (Ollama/LM Studio/vLLM), and offline `antigravity`, preventing external API downtime. |
+| **Interactive Web UI + 17-Test `pytest` Suite + CI** | Provides a real-time visual **Technical X-Ray** panel for inspection of decisions, MCP protocols, and regulatory grounding, backed by automated GitHub Actions CI. |
 
 ---
 
@@ -172,6 +193,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 * `GET  /health` — Readiness probe (`status: "ok"`);
 * `POST /chat`   — Multi-turn message and Base64 attachment processing;
 * `POST /reset`  — State reset for specific or global sessions.
+
+<div align="center">
+  <img src="assets/web_ui_preview.jpg" alt="Interactive Web UI and Real-Time Technical X-Ray Panel" width="100%" />
+</div>
 
 ---
 
