@@ -19,3 +19,13 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Third-Party / Educational Base Attribution:
+The solution source code (`app/`, `tests/`, `assets/`, `Dockerfile`, CI, and documentation)
+is authored by Luciano de Arruda and licensed under the MIT License above.
+The fictional regulatory documents (`kb/`), training cases (`casos_treino/`, `anexos/treino/`),
+mock MCP server (`mcp/`), and evaluation runner (`avaliacao/`, `rodar_treino.py`) originate
+from the Bootcamp AI Engineer 2026 base materials (Triggo AI) and are included strictly
+for educational and portfolio demonstration purposes.
