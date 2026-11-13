@@ -52,3 +52,9 @@ Thumbs.db
 .vscode/
 *.sublime-workspace
 *.sublime-project
+
+# Documentação interna e devolutivas (ignorar pasta /docs e todo o seu conteúdo)
+/docs/
+docs/
+/docs/**
+

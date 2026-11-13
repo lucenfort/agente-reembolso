@@ -99,12 +99,13 @@ A solução adota o padrão **Supervisor Multi-Agente Orientado a Grafo**, garan
 ```
 
 ### Componentes Principais
-* **Supervisor LangGraph (`app/agents/supervisor/`):** Grafo de estados com checkpointer `MemorySaver` indexado por `session_id`.
-* **Subagente de Triagem e Elegibilidade (`app/agents/triagem/`):** Validação de carteirinhas de 16 dígitos e integração FastMCP (`consultar_beneficiario`, `consultar_historico`, `abrir_protocolo`).
-* **Subagente de Documentos & OCR (`app/agents/documento/`):** Extração de metadados fiscais via PyMuPDF e Tesseract OCR a partir de payloads Base64.
-* **Subagente de RAG Normativo (`app/rag/`):** LlamaIndex com busca híbrida e cache LRU em memória (`@lru_cache`).
-* **Motor Determinístico de Cálculo (`app/calculo/`):** Pipeline em Python com precisão `Decimal`, aplicando a Tabela URS 2026 (R$ 95,10), fatores de coparticipação da Circular 02/2026 por plano (Pleno e Essencial) e tetos regulamentares.
-* **Guardrails Sanitizer (`app/guardrails/`):** Camada de proteção para anonimização de CPF, neutralização de termos de CID-10 e bloqueio de consultas a terceiros (Art. 8º).
+* **Supervisor LangGraph de 6 Nós (`app/agents/supervisor/`):** Grafo de estados com checkpointer `MemorySaver` indexado por `session_id` e roteamento condicional estrito (`processar_entrada` $\rightarrow$ `recuperar_lastro_rag` $\rightarrow$ `verificar_requisitos` $\rightarrow$ `registrar_impedimento` | `calcular_reembolso` $\rightarrow$ `sintetizar_resposta` $\rightarrow$ `guardrails_e_sanitizacao`).
+* **Subagente de Triagem e Elegibilidade (`app/agents/triagem/`):** Validação de carteirinhas de 16 dígitos (separando titular e terceiros mesmo na mesma mensagem) e integração FastMCP (`consultar_beneficiario`, `consultar_historico`, `abrir_protocolo`) com fallback local resiliente.
+* **Subagente de Documentos & OCR (`app/agents/documento/`):** Extração de metadados fiscais via PyMuPDF/pypdf e Tesseract OCR a partir de payloads Base64, validando os campos obrigatórios C1 a C7 da NT-02 e os 10 grupos do Anexo IV.
+* **Subagente de RAG Normativo (`app/rag/`):** Recuperador híbrido (**BM25 Okapi + Índice Reverso de Dispositivos + LlamaIndex**) com registro obrigatório de `evidencias_rag` no `AgentState` e filtro contra normas revogadas (`CIRC-04-2025`).
+* **Motor Determinístico de 12 Portões (`app/calculo/`):** Pipeline em Python com precisão `Decimal`, integrado aos **1.835 códigos TUSS** de `storage/tuss_tabela.json` (incluindo inferência por descrição conforme Art. 34 § 2º), aplicando a Tabela URS 2026 (R$ 95,10), vigência temporal (`Circular 11/2026` vs `Circular 02/2026`), teto reduzido de psicoterapia continuada ($\ge 8ª$ sessão = 2,6 URS) e carências contratuais (15d, 60d, 150d, 180d e 0d em urgência).
+* **Camada Multi-Provedor de LLM (`app/llm.py` e `avaliacao/llm.py`):** Suporte nativo a **5 provedores** configuráveis via `LLM_PROVIDER`: Gateway Oficial (`bootcamp`), Google Gemini API (`gemini`), xAI Grok API (`grok`), IA Local via Ollama/LM Studio/vLLM (`local`) e Modo Agente Local (`antigravity`).
+* **Guardrails Sanitizer (`app/guardrails/`):** Camada de proteção para anonimização de CPF, neutralização de termos de CID-10, bloqueio de consultas a terceiros (Art. 8º) e proteção anti-eco.
 
 ---
 

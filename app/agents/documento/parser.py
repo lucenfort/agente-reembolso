@@ -1,16 +1,24 @@
-"""Módulo de parsing e decodificação de anexos em Base64 (PDFs e Imagens)."""
+"""Módulo de parsing e decodificação de anexos em Base64 (PDFs, Imagens e Textos)."""
 
 from __future__ import annotations
 
 import base64
 import io
 import logging
-import re
 import shutil
 from typing import Any
 
-import pymupdf
 from PIL import Image
+
+try:
+    import pymupdf
+except ImportError:
+    pymupdf = None  # type: ignore[assignment]
+
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None  # type: ignore[assignment]
 
 logger = logging.getLogger("app.agents.documento.parser")
 
@@ -27,7 +35,7 @@ def _verificar_tesseract() -> bool:
 
 
 def extrair_texto_de_base64(anexo_input: Any) -> tuple[str, str]:
-    """Decodifica payload Base64 (ou objeto Anexo / dict) e extrai texto de PDF ou imagem.
+    """Decodifica payload Base64 (ou objeto Anexo / dict) e extrai texto de PDF, imagem ou texto puro.
 
     Retorna:
         tuple[texto_extraido, tipo_detectado]
@@ -44,7 +52,6 @@ def extrair_texto_de_base64(anexo_input: Any) -> tuple[str, str]:
     else:
         anexo_base64 = str(anexo_input)
 
-    # Remove prefixo de data URI caso presente (ex: data:application/pdf;base64,...)
     anexo_limpo = anexo_base64.strip()
     if "," in anexo_limpo and anexo_limpo.startswith("data:"):
         anexo_limpo = anexo_limpo.split(",", 1)[1].strip()
@@ -62,46 +69,71 @@ def extrair_texto_de_base64(anexo_input: Any) -> tuple[str, str]:
     if dados_bytes.startswith(b"%PDF"):
         return _extrair_texto_pdf(dados_bytes), "PDF"
 
-    # 2. Detecção por Imagem (PNG: \x89PNG, JPEG: \xff\xd8\xff, etc.)
+    # 2. Detecção por Imagem (PNG: \x89PNG, JPEG: \xff\xd8\xff, WEBP/GIF)
+    if (
+        dados_bytes.startswith(b"\x89PNG")
+        or dados_bytes.startswith(b"\xff\xd8\xff")
+        or dados_bytes.startswith(b"GIF8")
+        or dados_bytes[:4] == b"RIFF"
+    ):
+        return _extrair_texto_imagem(dados_bytes), "IMAGEM"
+
+    # 3. Texto UTF-8 codificado em Base64 (útil em testes unitários e payloads textuais)
+    try:
+        texto_utf8 = dados_bytes.decode("utf-8").strip()
+        if texto_utf8:
+            return texto_utf8, "PDF"
+    except UnicodeDecodeError:
+        pass
+
     return _extrair_texto_imagem(dados_bytes), "IMAGEM"
 
 
 def _extrair_texto_pdf(dados_bytes: bytes) -> str:
-    """Extrai texto e tabelas de um arquivo PDF via PyMuPDF com fallback OCR."""
+    """Extrai texto e tabelas de um arquivo PDF via PyMuPDF ou PyPDF com fallback OCR."""
     textos: list[str] = []
-    try:
-        with pymupdf.open(stream=dados_bytes, filetype="pdf") as doc:
-            for page_num, page in enumerate(doc):
-                texto_pagina = page.get_text().strip()
+    if pymupdf is not None:
+        try:
+            with pymupdf.open(stream=dados_bytes, filetype="pdf") as doc:
+                for page_num, page in enumerate(doc):
+                    texto_pagina = page.get_text().strip()
 
-                # Tenta extrair tabelas estruturadas da página se existirem
-                tabs = page.find_tables()
-                if tabs and len(tabs.tables) > 0:
-                    for tab in tabs:
-                        for row in tab.extract():
-                            if row and any(row):
-                                linha = " | ".join(str(c).strip() for c in row if c is not None)
-                                if linha not in texto_pagina:
-                                    textos.append(linha)
+                    tabs = page.find_tables()
+                    if tabs and len(tabs.tables) > 0:
+                        for tab in tabs:
+                            for row in tab.extract():
+                                if row and any(row):
+                                    linha = " | ".join(str(c).strip() for c in row if c is not None)
+                                    if linha not in texto_pagina:
+                                        textos.append(linha)
 
-                if texto_pagina:
-                    textos.append(texto_pagina)
-                elif _verificar_tesseract():
-                    # Fallback OCR para páginas que são imagens escaneadas
-                    pix = page.get_pixmap(dpi=150)
-                    img = Image.open(io.BytesIO(pix.tobytes("png")))
-                    try:
-                        import pytesseract
+                    if texto_pagina:
+                        textos.append(texto_pagina)
+                    elif _verificar_tesseract():
+                        pix = page.get_pixmap(dpi=150)
+                        img = Image.open(io.BytesIO(pix.tobytes("png")))
+                        try:
+                            import pytesseract
 
-                        texto_ocr = pytesseract.image_to_string(img, lang="por+eng")
-                        if texto_ocr.strip():
-                            textos.append(texto_ocr.strip())
-                    except Exception as e:
-                        logger.warning(f"Falha no OCR da página {page_num}: {e}")
+                            texto_ocr = pytesseract.image_to_string(img, lang="por+eng")
+                            if texto_ocr.strip():
+                                textos.append(texto_ocr.strip())
+                        except Exception as e:
+                            logger.warning(f"Falha no OCR da página {page_num}: {e}")
+            if textos:
+                return "\n\n".join(textos)
+        except Exception as e:
+            logger.error(f"Erro ao processar PDF com PyMuPDF: {e}")
 
-    except Exception as e:
-        logger.error(f"Erro ao processar PDF com PyMuPDF: {e}")
-        return ""
+    if PdfReader is not None:
+        try:
+            reader = PdfReader(io.BytesIO(dados_bytes))
+            for page in reader.pages:
+                t = (page.extract_text() or "").strip()
+                if t:
+                    textos.append(t)
+        except Exception as e:
+            logger.error(f"Erro ao processar PDF com PyPDF: {e}")
 
     return "\n\n".join(textos)
 

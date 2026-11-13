@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 
-class AgentState(TypedDict):
+class AgentState(TypedDict, total=False):
     """Estado do agente mantido pelo checkpointer do LangGraph indexado por session_id."""
 
     session_id: str
@@ -30,3 +30,8 @@ class AgentState(TypedDict):
     anexo_atual: dict[str, Any] | None
     recusa_terceiro_neste_turno: bool
     motivo_pendencia: str | None
+    etapa_bloqueio: str | None
+    apto_para_calculo: bool
+    detalhes_calculo: dict[str, Any] | None
+    evidencias_rag: list[dict[str, Any]]
+    dispositivos_rag: list[str]
