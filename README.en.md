@@ -262,5 +262,5 @@ All core flows and regulatory rules are automatically validated by the `pytest` 
 ---
 
 <div align="center">
-  <sub>Engineered with technical excellence for the Bootcamp AI Engineer 2026 (Exam 339EF4) · Solution source code licensed under MIT; fictional base materials (`kb/`, `casos_treino/`, `mcp/`, `avaliacao/`) originate from Triggo AI Bootcamp educational resources and are used strictly for portfolio demonstration.</sub>
+  <sub>Developed for the Bootcamp AI Engineer 2026 (Exam 339EF4).</sub>
 </div>

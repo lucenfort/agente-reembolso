@@ -278,5 +278,5 @@ Todos os fluxos principais e regras regulatórias são validados de forma automa
 ---
 
 <div align="center">
-  <sub>Desenvolvido com excelência técnica para o Bootcamp AI Engineer 2026 (Prova 339EF4) · Código da solução sob licença MIT; documentos base fictícios (`kb/`, `casos_treino/`, `mcp/`, `avaliacao/`) pertencentes ao material educacional da Triggo AI, usados exclusivamente para portfólio e demonstração.</sub>
+  <sub>Desenvolvido para o Bootcamp AI Engineer 2026 (Prova 339EF4).</sub>
 </div>
