@@ -24,13 +24,36 @@
 
 Implementação do **Agente Autônomo de Reembolso** para a **SaúdeMais Saúde Suplementar**, desenvolvido como solução para o desafio técnico do **Bootcamp AI Engineer 2026 (Prova 339EF4)** e evoluído com arquitetura verificável, suporte multi-provedor e interface web de auditoria em tempo real.
 
-O sistema atua como um analista regulatório e de atendimento ao cliente, sendo capaz de:
-1. Conduzir diálogos acolhedores, didáticos e empáticos em linguagem natural (*atendimento multi-turno*);
+### O que o projeto faz
+O sistema atua como um analista regulatório e de atendimento ao cliente em Saúde Suplementar, sendo capaz de:
+1. Conduzir diálogos acolhedores, didáticos e empáticos em linguagem natural (*atendimento multi-turno*, inclusive com mensagens e anexos fora de ordem);
 2. Processar, classificar e extrair dados de documentos fiscais e laudos clínicos em **PDF nativo e imagens escaneadas via OCR**;
-3. Integrar-se via **Model Context Protocol (MCP)** para consultar dados cadastrais, histórico anual de sessões e emitir protocolos oficiais;
+3. Integrar-se via **Model Context Protocol (MCP)** para consultar dados cadastrais, histórico anual de sessões e emitir protocolos oficiais na operadora;
 4. Recuperar normativas complexas da SaúdeMais (Regulamento Geral, Nota Técnica 02, Anexo IV, Tabela URS 2026 e Circulares) por **busca híbrida (BM25 + índice reverso de dispositivos + LlamaIndex)** com lastro registrado no estado;
-5. Calcular deterministamente valores devidos com precisão decimal exata (`Decimal`), aplicando **12 portões eliminatórios** antes de qualquer cálculo financeiro;
-6. Assegurar conformidade rigorosa com a **LGPD e regras de sigilo** (mascaramento de CPF, supressão de diagnósticos/CID-10 e recusa de consulta a dados de terceiros).
+5. Calcular deterministamente valores devidos com precisão decimal exata (`Decimal`), aplicando **12 portões eliminatórios** antes de qualquer cálculo financeiro e consultando os **1.835 códigos TUSS**;
+6. Assegurar conformidade rigorosa com a **LGPD e regras de sigilo** (mascaramento de CPF, supressão de diagnósticos/CID-10 e recusa de consulta a dados de terceiros sem encerrar a sessão em curso);
+7. Expor uma **Interface Web Interativa (`GET /`)** com painel **Raio-X Técnico** em tempo real para inspeção de decisões, cálculos, protocolos MCP e dispositivos aplicados.
+
+### Resumo do Desafio Original
+A prova técnica simulava o atendimento real de uma operadora fictícia (**SaúdeMais**) com regras jurídicas densas, armadilhas de conversa e avaliação automatizada por juiz LLM sobre conversas multi-turno (peso de 70% nos turnos atendidos e 30% no desfecho final). Entre os principais desafios exigidos:
+- **Conversas fora de ordem:** receber anexos antes da carteirinha, ou receber documentos faltantes em turnos posteriores sem perder o protocolo aberto;
+- **Vigência temporal e hierarquia de normas:** distinguir regras por data do evento (`Circular 11/2026` vs. `Circular 02/2026`), ignorar normas revogadas (`Circular 04/2025` revogada pela `09/2025`) e cruzar dados do sistema MCP (ex.: contagem real de sessões de terapia no ano);
+- **Alçada e OPME:** escalar materiais especiais e valores acima da alçada (Art. 78) abrindo protocolo MCP, com proibição estrita de estimar valor prévio ao beneficiário;
+- **Sigilo e LGPD:** impedir vazamento de CPF completo, CID-10 e informações de terceiros na mesma sessão.
+
+### Resultados no Bootcamp, Devolutiva e Evolução para o Projeto Final
+
+Na avaliação oficial do bootcamp (**v1**), a primeira versão do projeto obteve **67,1 / 100** (**+22,9 pontos acima da média da turma de 44,2 / 100**, ficando no top ~12% e a apenas 2,9 pontos da nota de corte 70,0), com destaque na fluidez conversacional (**56/67 turnos atendidos — 84%**, somando ~58,1 pts), mas perdendo pontos nos desfechos (**3/10 desfechos — 9,0 pts**).
+
+**Principais pontos apontados pela devolutiva oficial e o que foi corrigido/melhorado na versão final (v2):**
+
+| Aspecto | Versão Bootcamp (v1 — 67,1/100) | Versão Final (v2 — 100/100 Treino · 96,8 Projetado) |
+| :--- | :--- | :--- |
+| **Orquestração LangGraph** | Grafo linear de 3 nós disparava o cálculo assim que havia documento e carteirinha. | Refatorado para **6 nós com roteamento condicional**: `verificar_requisitos` (11 portões) bloqueia casos inválidos antes de `calcular_reembolso`. |
+| **Leitura de Sessões MCP** | Lia `sessoes_terapia_ano` apenas de `/historico`, lendo `0` quando o campo vinha em `/beneficiario`. | Corrigido em `mcp_client.py` e `motor.py` para ler `/beneficiario` + `/historico`, exigindo corretamente o relatório clínico (Art. 73). |
+| **Regras e Tabela TUSS** | Cobertura parcial de códigos TUSS e sem diferenciação completa de vigência temporal. | Integração dos **1.835 códigos TUSS**, vigência temporal (`Circular 11/2026` vs. `02/2026`), teto reduzido de psicoterapia (`2,6 URS` na 8ª+ sessão), carências (15d/60d/150d/180d/0d) e pedido médico (Art. 38). |
+| **Lastro Normativo (RAG)** | Dependia de gateway externo para embeddings e não gravava os dispositivos no estado. | Motor híbrido offline **BM25 + Índice Reverso de Dispositivos** gravando `evidencias_rag` no `AgentState` e filtrando normas revogadas. |
+| **Provedores, UI e Testes** | Suportava apenas o gateway do bootcamp e não possuía interface visual nem suíte extensa. | Suporte a **5 provedores LLM** com fallback automático, **Interface Web com Raio-X Técnico**, **17 testes (`pytest`)** e CI no GitHub Actions. |
 
 ---
 
@@ -177,6 +200,19 @@ Com o ambiente virtual ativado, inicie o servidor FastAPI na porta `8000`:
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+**Atalho para Windows PowerShell (copiar e colar usando a `.venv` local):**
+
+```powershell
+# 0. Liberar portas 8000 e 9000 (caso haja processos antigos)
+Get-NetTCPConnection -LocalPort 8000,9000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force }
+
+# 1. Terminal 1 — Servidor MCP da Operadora (Porta 9000)
+$env:PYTHONPATH="mcp"; $env:MCP_OPERADORA_DADOS="casos_treino"; $env:MCP_OPERADORA_TOKEN="treino"; .\.venv\Scripts\python.exe -m mcp_operadora.server
+
+# 2. Terminal 2 — API FastAPI + Interface Web (Porta 8000)
+$env:LLM_PROVIDER="antigravity"; $env:MCP_OPERADORA_URL="http://127.0.0.1:9000"; $env:MCP_OPERADORA_TOKEN="treino"; .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
 ### Endpoints e Interface Web Disponíveis:
 * `GET  /`       — **Interface Web Interativa** (Chat Multi-Turno + Upload de Anexos + Painel de Auditoria em tempo real);
 * `GET  /docs`   — Documentação interativa Swagger / OpenAPI;
@@ -201,22 +237,22 @@ python ingest/build.py
 ### 1. Suíte Automatizada (`pytest` — 17 testes)
 Valida os 3 casos de treino oficiais (24 turnos), todos os 12 portões regulamentares, tabela TUSS (1.835 códigos), vigência temporal (`Circular 11/2026` vs. `Circular 02/2026`), RAG BM25, multi-provedores, endpoints FastAPI e interface web (`GET /`):
 
-```bash
-pytest -v
+```powershell
+.\.venv\Scripts\python.exe -m pytest -v
 ```
 
 ### 2. Runner Oficial com Containers / Servidores HTTP
 Com o MCP (porta 9000) e o agente (porta 8000) em execução:
 
-```bash
-# Modo padrão determinístico (roteiro fixo com validação de gabarito)
-python rodar_treino.py --roteiro-fixo
+```powershell
+# Modo completo com relatório detalhado (100.0 / 100)
+$env:LLM_PROVIDER="antigravity"; .\.venv\Scripts\python.exe rodar_treino.py --url http://127.0.0.1:8000 -v
 
-# Modo detalhado com beneficiário simulado por LLM
-python rodar_treino.py -v
+# Modo padrão determinístico (roteiro fixo com validação de gabarito)
+.\.venv\Scripts\python.exe rodar_treino.py --roteiro-fixo
 
 # Executar apenas um caso específico
-python rodar_treino.py --caso 01
+.\.venv\Scripts\python.exe rodar_treino.py --caso 01
 ```
 
 ---
